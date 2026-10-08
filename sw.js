@@ -1,4 +1,4 @@
-const CACHE_NAME = "hs-height-v4";
+const CACHE_NAME = "hs-height-v5";
 
 const APP_SHELL = [
   "./",
@@ -8,9 +8,7 @@ const APP_SHELL = [
   "./icons/icon-512.png"
 ];
 
-// --------------------------------------------------
-// INSTALL
-// --------------------------------------------------
+// Install
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -19,89 +17,39 @@ self.addEventListener("install", (event) => {
   );
 });
 
-// --------------------------------------------------
-// ACTIVATE
-// --------------------------------------------------
+// Activate
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => {
-        return Promise.all(
+      .then((keys) =>
+        Promise.all(
           keys
             .filter((key) => key !== CACHE_NAME)
             .map((key) => caches.delete(key))
-        );
-      })
+        )
+      )
       .then(() => self.clients.claim())
   );
 });
 
-// --------------------------------------------------
-// FETCH
-// --------------------------------------------------
+// Fetch
 self.addEventListener("fetch", (event) => {
-  const request = event.request;
+  if (event.request.method !== "GET") return;
 
-  // Only handle GET requests.
-  if (request.method !== "GET") {
-    return;
-  }
-
-  const url = new URL(request.url);
-
-  // Ignore external resources.
-  if (url.origin !== self.location.origin) {
-    return;
-  }
-
-  // ------------------------------------------------
-  // HTML / NAVIGATION
-  // Network first.
-  // ------------------------------------------------
-  if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request, { cache: "no-store" })
-        .then((response) => {
-          return response;
-        })
-        .catch(() => {
-          return caches.match("./index.html");
-        })
-    );
-
-    return;
-  }
-
-  // ------------------------------------------------
-  // Other same-origin files
-  // Network first, cache as offline fallback.
-  // ------------------------------------------------
   event.respondWith(
-    fetch(request, { cache: "no-store" })
+    fetch(event.request)
       .then((response) => {
         if (response.ok && response.type === "basic") {
           const copy = response.clone();
 
           caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(request, copy);
-            });
+            .then((cache) => cache.put(event.request, copy));
         }
 
         return response;
       })
       .catch(() => {
-        return caches.match(request)
-          .then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-
-            return new Response("", {
-              status: 503,
-              statusText: "Offline"
-            });
-          });
+        return caches.match(event.request);
       })
   );
 });
