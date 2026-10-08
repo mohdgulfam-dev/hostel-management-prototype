@@ -1,40 +1,3691 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0D63F3">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="HS Height">
-  <meta name="application-name" content="HS Height">
-  <meta name="description" content="Hostel management application for managing tenants, rent, electricity and hostel records.">
-  <meta name="format-detection" content="telephone=no">
-  <link rel="manifest" href="./manifest.json">
-  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
-  <link rel="apple-touch-icon" href="./icons/icon-192.png">
-  <title>HS Height — Hostel Management</title>
-  <link rel="stylesheet" href="css/styles.css">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0D63F3" />
+<title>HS Height — Hostel Management</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   HS HEIGHT — DESIGN TOKENS
+   ============================================================ */
+:root{
+  --blue:#0D63F3;
+  --blue-dark:#0A4FC4;
+  --blue-50:#EAF1FE;
+  --blue-100:#DCE8FE;
+  --navy:#0B1235;
+  --muted:#5F6F91;
+  --bg:#F8FAFD;
+  --line:#E4EAF5;
+  --card:#FFFFFF;
+
+  --green:#12A150;
+  --green-bg:#E7F7EE;
+  --red:#E5484D;
+  --red-bg:#FDECEC;
+  --amber:#C97A00;
+  --amber-bg:#FFF4E0;
+  --purple:#7C5CFC;
+  --purple-bg:#F1EDFE;
+
+  --r-card:18px;
+  --r-btn:14px;
+  --r-pill:999px;
+  --shadow:0 1px 2px rgba(11,18,53,.04), 0 4px 14px rgba(11,18,53,.045);
+  --shadow-sm:0 1px 2px rgba(11,18,53,.05);
+}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  background:var(--bg);
+  color:var(--navy);
+  width:100%;
+  min-height:100dvh;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  font-size:15px;
+  line-height:1.4;
+}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit;}
+button{cursor:pointer;border:none;background:none;padding:0;}
+input,select,textarea{outline:none;}
+a{color:var(--blue);text-decoration:none;}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:8px;}
+
+#app{width:100%;min-height:100dvh;display:flex;flex-direction:column;}
+.shell{display:flex;flex-direction:column;min-height:100dvh;width:100%;}
+
+/* ============================================================
+   TOP BAR
+   ============================================================ */
+.topbar{
+  position:sticky;top:0;z-index:40;
+  background:#fff;
+  display:flex;align-items:center;gap:10px;
+  padding:12px 14px;
+  border-bottom:1px solid var(--line);
+  padding-top:calc(12px + env(safe-area-inset-top));
+}
+.icon-btn{
+  width:42px;height:42px;min-width:42px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:12px;color:var(--navy);
+  transition:background .15s;
+}
+.icon-btn:active{background:var(--blue-50);}
+.brand{flex:1;font-size:19px;font-weight:800;letter-spacing:-.3px;}
+.brand .b1{color:var(--navy);}
+.brand .b2{color:var(--blue);}
+.brand-sub{font-size:10px;letter-spacing:2px;color:var(--muted);font-weight:600;}
+
+/* ============================================================
+   CONTENT
+   ============================================================ */
+.content{flex:1;width:100%;padding:16px 16px 110px;}
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
+.page-title{font-size:26px;font-weight:800;letter-spacing:-.6px;margin:0;display:flex;align-items:center;gap:8px;}
+.page-sub{font-size:13.5px;color:var(--muted);margin:4px 0 0;}
+.count-badge{
+  background:var(--blue-50);color:var(--blue);font-size:13px;font-weight:700;
+  padding:2px 10px;border-radius:var(--r-pill);
+}
+.section-title{font-size:16px;font-weight:700;margin:0;}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.link{color:var(--blue);font-weight:600;font-size:13.5px;display:inline-flex;align-items:center;gap:4px;}
+
+/* ============================================================
+   CARDS
+   ============================================================ */
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:var(--r-card);
+  padding:16px;
+  box-shadow:var(--shadow);
+  margin-bottom:14px;
+}
+.card.flush{padding:0;overflow:hidden;}
+.card.tint-blue{background:linear-gradient(180deg,#F4F8FF,#FFFFFF);border-color:#DCE8FE;}
+.card.tint-red{background:linear-gradient(180deg,#FFF3F3,#FFFFFF);border-color:#FBDCDC;}
+.card.tint-green{background:linear-gradient(180deg,#F1FBF5,#FFFFFF);border-color:#D7F0E1;}
+.card.tint-amber{background:linear-gradient(180deg,#FFF9EE,#FFFFFF);border-color:#FBE6C2;}
+.card.tint-purple{background:linear-gradient(180deg,#F7F4FF,#FFFFFF);border-color:#E3DBFE;}
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:48px;padding:0 18px;border-radius:var(--r-btn);
+  font-weight:700;font-size:15px;
+  transition:transform .08s, background .15s, opacity .15s;
+  border:1px solid transparent;
+}
+.btn:active{transform:scale(.975);}
+.btn-primary{background:var(--blue);color:#fff;box-shadow:0 4px 14px rgba(13,99,243,.25);}
+.btn-primary:active{background:var(--blue-dark);}
+.btn-ghost{background:#fff;color:var(--blue);border-color:var(--blue-100);}
+.btn-soft{background:var(--blue-50);color:var(--blue);}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-danger-soft{background:var(--red-bg);color:var(--red);}
+.btn-success-soft{background:var(--green-bg);color:var(--green);}
+.btn-warn-soft{background:var(--amber-bg);color:var(--amber);}
+.btn-block{width:100%;}
+.btn-sm{min-height:38px;padding:0 14px;font-size:13.5px;border-radius:12px;}
+.btn[disabled]{opacity:.5;pointer-events:none;}
+.btn-row{display:flex;gap:10px;}
+.btn-row>.btn{flex:1;}
+
+/* ============================================================
+   PILLS / STATUS
+   ============================================================ */
+.pill{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:12px;font-weight:700;
+  padding:5px 11px;border-radius:var(--r-pill);
+  white-space:nowrap;
+}
+.pill-paid,.pill-resolved{background:var(--green-bg);color:var(--green);}
+.pill-unpaid,.pill-open{background:var(--red-bg);color:var(--red);}
+.pill-partial,.pill-in-progress{background:var(--amber-bg);color:var(--amber);}
+.pill-info{background:var(--blue-50);color:var(--blue);}
+.pill-elec{background:var(--amber-bg);color:var(--amber);}
+.pill-neutral{background:#F1F4FA;color:var(--muted);}
+
+/* ============================================================
+   CHIPS / FILTERS
+   ============================================================ */
+.chip-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;margin-bottom:12px;scrollbar-width:none;}
+.chip-row::-webkit-scrollbar{display:none;}
+.chip{
+  flex:0 0 auto;
+  padding:9px 16px;border-radius:var(--r-pill);
+  background:#F1F4FA;color:var(--muted);
+  font-weight:600;font-size:13.5px;min-height:40px;
+  display:inline-flex;align-items:center;gap:6px;
+  transition:background .15s,color .15s;
+}
+.chip.active{background:var(--blue);color:#fff;box-shadow:0 3px 10px rgba(13,99,243,.25);}
+
+/* ============================================================
+   SEARCH
+   ============================================================ */
+.search{
+  display:flex;align-items:center;gap:10px;
+  background:#fff;border:1px solid var(--line);border-radius:14px;
+  padding:0 14px;height:50px;margin-bottom:12px;
+  color:var(--muted);
+  box-shadow:var(--shadow-sm);
+}
+.search input{flex:1;border:none;background:none;height:100%;font-size:14.5px;color:var(--navy);}
+.search input::placeholder{color:#9AA7C0;}
+
+/* ============================================================
+   AVATARS
+   ============================================================ */
+.avatar{
+  width:46px;height:46px;min-width:46px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-weight:800;font-size:15px;letter-spacing:.3px;
+}
+.avatar.sm{width:34px;height:34px;min-width:34px;font-size:12px;}
+.avatar.lg{width:76px;height:76px;min-width:76px;font-size:26px;}
+
+/* ============================================================
+   LIST ROWS
+   ============================================================ */
+.list{display:flex;flex-direction:column;}
+.row{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;background:#fff;
+  border-bottom:1px solid var(--line);
+  width:100%;text-align:left;
+}
+.row:last-child{border-bottom:none;}
+.row:active{background:#F7FAFF;}
+.row-main{flex:1;min-width:0;}
+.row-title{font-weight:700;font-size:14.5px;color:var(--navy);display:flex;align-items:center;gap:6px;}
+.row-sub{font-size:12.5px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:5px;flex-wrap:wrap;}
+.row-right{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:5px;}
+.amount{font-weight:800;font-size:15px;}
+.amount.due{color:var(--red);}
+.amount.paid{color:var(--green);}
+.amount.muted{color:var(--muted);font-weight:600;}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* ============================================================
+   STAT / FINANCIAL CARDS
+   ============================================================ */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.grid2.tight{gap:10px;}
+.stat{
+  border-radius:var(--r-card);border:1px solid var(--line);
+  background:#fff;padding:14px;box-shadow:var(--shadow-sm);
+  display:flex;flex-direction:column;gap:6px;text-align:left;
+}
+.stat-label{font-size:12.5px;color:var(--muted);font-weight:600;}
+.stat-value{font-size:21px;font-weight:800;letter-spacing:-.5px;}
+.stat-foot{font-size:11.5px;color:var(--muted);}
+.stat-icon{
+  width:38px;height:38px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;margin-bottom:2px;
+}
+.stat.big{grid-column:1/-1;flex-direction:row;align-items:center;gap:14px;padding:18px;}
+.stat.big .stat-value{font-size:32px;}
+.bg-blue{background:var(--blue-50);color:var(--blue);}
+.bg-green{background:var(--green-bg);color:var(--green);}
+.bg-red{background:var(--red-bg);color:var(--red);}
+.bg-amber{background:var(--amber-bg);color:var(--amber);}
+.bg-purple{background:var(--purple-bg);color:var(--purple);}
+
+.kv{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);}
+.kv:last-child{border-bottom:none;}
+.kv-icon{width:34px;height:34px;min-width:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:#F3F6FC;color:var(--muted);}
+.kv-label{font-size:12.5px;color:var(--muted);font-weight:600;}
+.kv-value{font-size:14.5px;font-weight:600;color:var(--navy);margin-top:1px;}
+
+/* ============================================================
+   FORMS
+   ============================================================ */
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:13.5px;font-weight:700;margin-bottom:7px;}
+.field .req{color:var(--red);}
+.field .hint{font-size:12px;color:var(--muted);margin-top:6px;}
+.input-wrap{
+  display:flex;align-items:center;gap:10px;
+  border:1px solid var(--line);border-radius:14px;background:#fff;
+  padding:0 14px;height:52px;color:var(--muted);
+  transition:border-color .15s, box-shadow .15s;
+}
+.input-wrap:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px rgba(13,99,243,.12);}
+.input-wrap input,.input-wrap select,.input-wrap textarea{
+  flex:1;border:none;background:none;height:100%;font-size:15px;color:var(--navy);width:100%;
+  appearance:none;-webkit-appearance:none;
+}
+.input-wrap.textarea{height:auto;padding:12px 14px;align-items:flex-start;}
+.input-wrap textarea{min-height:92px;resize:vertical;line-height:1.45;padding-top:2px;}
+.input-wrap select{cursor:pointer;background:transparent;}
+.select-wrap{position:relative;}
+.select-wrap .chev{position:absolute;right:14px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--muted);}
+.err{color:var(--red);font-size:12.5px;margin-top:6px;font-weight:600;}
+
+/* ============================================================
+   BOTTOM NAV
+   ============================================================ */
+.bottom-nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:50;
+  background:#fff;border-top:1px solid var(--line);
+  display:flex;align-items:stretch;
+  padding:8px 6px calc(8px + env(safe-area-inset-bottom));
+  box-shadow:0 -2px 16px rgba(11,18,53,.05);
+}
+.nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+  padding:7px 2px;border-radius:14px;color:#6B7A99;
+  font-size:11.5px;font-weight:600;min-height:56px;justify-content:center;
+  transition:background .15s,color .15s;
+}
+.nav-item.active{color:var(--blue);background:var(--blue-50);}
+.nav-item.active span{font-weight:700;}
+
+/* ============================================================
+   DRAWER
+   ============================================================ */
+.drawer-backdrop{
+  position:fixed;inset:0;background:rgba(11,18,53,.45);z-index:200;
+  animation:fadeIn .18s ease;display:flex;
+}
+.drawer{
+  width:82%;max-width:330px;height:100%;background:#fff;
+  padding:calc(20px + env(safe-area-inset-top)) 16px 20px;
+  overflow-y:auto;animation:slideRight .25s cubic-bezier(.16,1,.3,1);
+  border-radius:0 22px 22px 0;
+}
+.drawer-head{display:flex;align-items:center;gap:12px;padding-bottom:16px;border-bottom:1px solid var(--line);margin-bottom:12px;}
+.drawer-link{
+  display:flex;align-items:center;gap:13px;width:100%;
+  padding:13px 10px;border-radius:13px;font-weight:600;font-size:15px;color:var(--navy);
+  text-align:left;
+}
+.drawer-link:active{background:var(--blue-50);}
+.drawer-link .di{width:36px;height:36px;border-radius:11px;display:flex;align-items:center;justify-content:center;}
+
+/* ============================================================
+   BOTTOM SHEET / MODAL
+   ============================================================ */
+.sheet-backdrop{
+  position:fixed;inset:0;background:rgba(11,18,53,.5);z-index:300;
+  display:flex;align-items:flex-end;animation:fadeIn .18s ease;
+}
+.sheet{
+  width:100%;background:#fff;border-radius:26px 26px 0 0;
+  max-height:94dvh;overflow-y:auto;
+  padding:10px 18px calc(24px + env(safe-area-inset-bottom));
+  animation:slideUp .3s cubic-bezier(.16,1,.3,1);
+  -webkit-overflow-scrolling:touch;
+}
+.drag-handle{width:42px;height:5px;border-radius:99px;background:#D9E0EE;margin:0 auto 14px;}
+.sheet-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;}
+.sheet-title{font-size:21px;font-weight:800;letter-spacing:-.4px;margin:0;}
+.sheet-sub{font-size:13.5px;color:var(--muted);margin:3px 0 0;}
+.close-btn{
+  margin-left:auto;width:38px;height:38px;min-width:38px;border-radius:50%;
+  background:#F1F4FA;color:var(--muted);display:flex;align-items:center;justify-content:center;
+}
+
+.modal-backdrop{
+  position:fixed;inset:0;background:rgba(11,18,53,.5);z-index:400;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+  animation:fadeIn .18s ease;
+}
+.modal{
+  background:#fff;border-radius:22px;padding:22px;width:100%;max-width:360px;
+  animation:popIn .2s cubic-bezier(.16,1,.3,1);
+}
+.modal h3{margin:0 0 8px;font-size:19px;font-weight:800;}
+.modal p{margin:0 0 20px;color:var(--muted);font-size:14px;}
+
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes slideRight{from{transform:translateX(-100%)}to{transform:translateX(0)}}
+@keyframes popIn{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes slideIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.screen-anim{animation:slideIn .2s ease;}
+
+/* ============================================================
+   TOASTS
+   ============================================================ */
+#toast-root{
+  position:fixed;left:0;right:0;bottom:calc(84px + env(safe-area-inset-bottom));
+  z-index:600;display:flex;flex-direction:column;align-items:center;gap:8px;
+  pointer-events:none;padding:0 16px;
+}
+.toast{
+  display:flex;align-items:center;gap:10px;
+  background:#0B1235;color:#fff;
+  padding:13px 18px;border-radius:14px;
+  font-size:14px;font-weight:600;
+  box-shadow:0 8px 26px rgba(11,18,53,.28);
+  animation:slideIn .22s ease;
+  max-width:100%;
+}
+.toast.success{background:#0E7A3E;}
+.toast.error{background:#C42B30;}
+.toast.info{background:#0B1235;}
+
+/* ============================================================
+   LOGIN
+   ============================================================ */
+.login{
+  min-height:100dvh;width:100%;
+  background:linear-gradient(180deg,#E8F1FE 0%,#F5F9FF 42%,#FFFFFF 62%);
+  display:flex;flex-direction:column;align-items:center;
+  padding:calc(38px + env(safe-area-inset-top)) 22px calc(24px + env(safe-area-inset-bottom));
+  position:relative;overflow:hidden;
+}
+.login-deco{
+  position:absolute;left:-40px;right:-40px;bottom:0;height:180px;
+  background:radial-gradient(120% 100% at 50% 100%, #DCEBFF 0%, rgba(220,235,255,0) 70%);
+  pointer-events:none;
+}
+.login-logo{width:96px;height:96px;border-radius:26px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 30px rgba(13,99,243,.18);font-size:34px;font-weight:800;color:var(--blue);letter-spacing:-2px;}
+.login-brand{font-size:26px;font-weight:800;letter-spacing:-.6px;margin-top:16px;}
+.login-brand .b1{color:var(--navy);}
+.login-brand .b2{color:var(--blue);}
+.login-tag{font-size:10.5px;letter-spacing:3.4px;color:var(--muted);font-weight:700;margin-top:6px;}
+.login-card{
+  width:100%;background:#fff;border-radius:26px;padding:26px 20px;
+  box-shadow:0 12px 40px rgba(11,18,53,.08);
+  border:1px solid var(--line);
+  margin-top:auto;position:relative;z-index:2;
+}
+.login-card h1{font-size:27px;font-weight:800;letter-spacing:-.7px;margin:0;text-align:center;}
+.login-card p.sub{font-size:14px;color:var(--muted);text-align:center;margin:7px 0 22px;}
+.secure{
+  display:flex;align-items:center;gap:10px;justify-content:center;
+  margin-top:18px;font-size:12.5px;color:var(--muted);text-align:center;
+}
+.secure .lock{width:34px;height:34px;min-width:34px;border-radius:50%;background:var(--blue-50);color:var(--blue);display:flex;align-items:center;justify-content:center;}
+
+/* ============================================================
+   MISC
+   ============================================================ */
+.empty{
+  text-align:center;padding:44px 20px;color:var(--muted);
+}
+.empty .ic-wrap{
+  width:64px;height:64px;border-radius:50%;background:var(--blue-50);color:var(--blue);
+  display:flex;align-items:center;justify-content:center;margin:0 auto 14px;
+}
+.empty h4{margin:0 0 6px;font-size:16px;color:var(--navy);font-weight:700;}
+.empty p{margin:0;font-size:13.5px;}
+.divider{height:1px;background:var(--line);margin:14px 0;}
+.month-selector{
+  display:flex;align-items:center;gap:8px;justify-content:center;
+  background:#fff;border:1px solid var(--line);border-radius:var(--r-pill);
+  padding:6px 8px;margin:0 auto 16px;width:fit-content;box-shadow:var(--shadow-sm);
+}
+.month-selector button{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--muted);}
+.month-selector button:active{background:var(--blue-50);color:var(--blue);}
+.month-label{font-weight:700;font-size:14.5px;padding:0 4px;min-width:130px;text-align:center;}
+.occ-dots{display:flex;gap:5px;margin-top:6px;}
+.dot{width:22px;height:8px;border-radius:99px;background:#E2E8F4;}
+.dot.on{background:var(--green);}
+.occ-people{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;}
+.occ-chip{display:inline-flex;align-items:center;gap:5px;background:#F5F8FD;border-radius:99px;padding:3px 9px 3px 3px;font-size:11.5px;font-weight:600;color:#3C4A6B;}
+.tabs{display:flex;background:#EFF3FA;border-radius:14px;padding:4px;margin-bottom:14px;}
+.tab{flex:1;text-align:center;padding:11px 0;border-radius:11px;font-weight:700;font-size:14px;color:var(--muted);}
+.tab.active{background:var(--blue);color:#fff;box-shadow:0 3px 10px rgba(13,99,243,.22);}
+.table-head{
+  display:flex;align-items:center;gap:8px;padding:10px 16px;
+  background:#F5F8FD;font-size:11.5px;font-weight:700;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.4px;
+}
+.timeline{position:relative;padding-left:30px;}
+.tl-item{position:relative;padding-bottom:20px;}
+.tl-item:last-child{padding-bottom:0;}
+.tl-item::before{
+  content:'';position:absolute;left:-22px;top:14px;bottom:-6px;width:2px;background:var(--line);
+}
+.tl-item:last-child::before{display:none;}
+.tl-dot{
+  position:absolute;left:-29px;top:2px;width:16px;height:16px;border-radius:50%;
+  background:#fff;border:2px solid #D5DEEE;
+}
+.tl-item.done .tl-dot{background:var(--blue);border-color:var(--blue);}
+.tl-item.active .tl-dot{background:var(--red);border-color:var(--red);box-shadow:0 0 0 4px rgba(229,72,77,.14);}
+.tl-title{font-weight:700;font-size:14.5px;}
+.tl-sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
+.img-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.img-ph{
+  aspect-ratio:1;border-radius:12px;background:linear-gradient(135deg,#DCE8FE,#C9DCFB);
+  display:flex;align-items:center;justify-content:center;color:var(--blue);
+  border:1px solid var(--line);
+}
+.img-add{
+  aspect-ratio:1;border-radius:12px;border:1.5px dashed #BBD2F7;background:#F5F9FF;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  color:var(--blue);font-size:11.5px;font-weight:700;
+}
+.rows-divide>*+*{border-top:1px solid var(--line);}
+</style>
 </head>
 <body>
-  <div id="app" class="app"></div>
-  <div id="toast-root" class="toast-root" aria-live="polite"></div>
-  <div id="modal-root"></div>
-  <script src="js/data.js"></script>
-  <script src="js/app.js"></script>
-  <script>
-    // Register the service worker only when the page is served from a
-    // supported origin (HTTPS or localhost). This keeps local file testing
-    // from throwing confusing service-worker errors.
-    if ("serviceWorker" in navigator &&
-        (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
-      window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./sw.js", { scope: "./" })
-          .then(registration => console.log("HS Height service worker registered:", registration.scope))
-          .catch(error => console.error("HS Height service worker registration failed:", error));
+
+<div id="app"></div>
+<div id="sheet-root"></div>
+<div id="toast-root"></div>
+
+<script>
+/* ================================================================
+   HS HEIGHT — HOSTEL MANAGEMENT
+   Single-file front-end prototype. Vanilla JS + localStorage.
+   ================================================================ */
+
+/* ----------------------------------------------------------------
+   1. CONSTANTS & ICONS
+   ---------------------------------------------------------------- */
+const AUTH_KEY = 'hs_height_auth';
+const DATA_KEY = 'hs_height_data';
+
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTH_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+const ICONS = {
+  home:'<path d="M3 9.6 12 3l9 6.6V20a1 1 0 0 1-1 1h-5v-6.2H9V21H4a1 1 0 0 1-1-1z"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13A4 4 0 0 1 19 7a4 4 0 0 1-3 3.87"/>',
+  bed:'<path d="M2 20v-8.5A2.5 2.5 0 0 1 4.5 9h15A2.5 2.5 0 0 1 22 11.5V20"/><path d="M2 16.5h20"/><path d="M6.5 9V6.5A1.5 1.5 0 0 1 8 5h8a1.5 1.5 0 0 1 1.5 1.5V9"/>',
+  more:'<circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/>',
+  moreV:'<circle cx="12" cy="5" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.6" fill="currentColor" stroke="none"/>',
+  menu:'<path d="M3 6h18M3 12h18M3 18h18"/>',
+  user:'<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  building:'<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 15h.01M15 15h.01"/>',
+  phone:'<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.2 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/>',
+  mapPin:'<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+  wallet:'<path d="M20 7H5a2 2 0 0 1 0-4h13v4"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1H5"/><path d="M17 13h.01"/>',
+  zap:'<path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12z"/>',
+  wrench:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  calendar:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  search:'<circle cx="11" cy="11" r="7.5"/><path d="m21 21-4.3-4.3"/>',
+  filter:'<path d="M22 3H2l8 9.46V19l4 2v-8.54z"/>',
+  chevRight:'<path d="m9 18 6-6-6-6"/>',
+  chevLeft:'<path d="m15 18-6-6 6-6"/>',
+  chevDown:'<path d="m6 9 6 6 6-6"/>',
+  edit:'<path d="M17 3a2.85 2.85 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  trash:'<path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>',
+  send:'<path d="m22 2-7 20-4-9-9-4z"/>',
+  check:'<path d="M20 6 9 17l-5-5"/>',
+  checkCircle:'<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+  clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+  logout:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
+  download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+  x:'<path d="M18 6 6 18M6 6l12 12"/>',
+  info:'<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>',
+  alert:'<circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/>',
+  card:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>',
+  chart:'<path d="M12 20V10M18 20V4M6 20v-4"/>',
+  lock:'<rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  arrowRight:'<path d="M5 12h14M12 5l7 7-7 7"/>',
+  arrowLeft:'<path d="M19 12H5M12 19l-7-7 7-7"/>',
+  trending:'<path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/>',
+  file:'<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/>',
+  gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  droplet:'<path d="M12 2.7 6.6 8.1a7.6 7.6 0 1 0 10.8 0z"/>',
+  wifi:'<path d="M5 12.5a11 11 0 0 1 14 0"/><path d="M8.5 16a6 6 0 0 1 7 0"/><path d="M12 19.5h.01"/><path d="M1.8 9a16 16 0 0 1 20.4 0"/>',
+  bulb:'<path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V18h8v-3.3A7 7 0 0 0 12 2z"/>',
+  plug:'<path d="M9 2v6M15 2v6"/><path d="M6 8h12v3a6 6 0 0 1-12 0z"/><path d="M12 17v5"/>',
+  door:'<path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h20"/><path d="M13 20V4l-8 2v14z"/><path d="M10 12h.01"/>',
+  fan:'<circle cx="12" cy="12" r="2"/><path d="M12 2v6M12 16v6M2 12h6M16 12h6M5.5 5.5l4 4M14.5 14.5l4 4M18.5 5.5l-4 4M9.5 14.5l-4 4"/>',
+  mail:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/>',
+  key:'<circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.3-9.3M17 5l2 2M14 8l2 2"/>',
+  rupee:'<path d="M6 4h11M6 9h11M15 4c0 5-4 5-9 5l7 10"/>'
+};
+function icon(name, size){
+  size = size || 20;
+  return '<svg width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[name]||'') + '</svg>';
+}
+
+/* ----------------------------------------------------------------
+   2. APP STATE
+   ---------------------------------------------------------------- */
+let DB = null;              // the whole data store
+let session = { authed:false, phone:'' };
+
+const UI = {
+  screen:'home',
+  params:{},
+  stack:[],
+  month:'2026-10',
+  tenantFilter:'all', tenantSearch:'',
+  roomFilter:'all', roomSearch:'',
+  rentFilter:'all', rentSearch:'',
+  elecFilter:'all', elecSearch:'',
+  complaintFilter:'all', complaintSearch:'',
+  finTab:'rent', finTenant:'all', finRoom:'all', finStatus:'all',
+  sheet:null
+};
+
+/* ----------------------------------------------------------------
+   3. STORAGE
+   ---------------------------------------------------------------- */
+function saveData(){
+  try{ localStorage.setItem(DATA_KEY, JSON.stringify(DB)); }catch(e){ console.warn('save failed',e); }
+}
+function loadData(){
+  try{
+    const raw = localStorage.getItem(DATA_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function saveAuth(){
+  localStorage.setItem(AUTH_KEY, JSON.stringify(session));
+}
+function loadAuth(){
+  try{
+    const raw = localStorage.getItem(AUTH_KEY);
+    if(!raw) return;
+    const s = JSON.parse(raw);
+    if(s && s.authed){ session = { authed:true, phone:s.phone||'' }; }
+  }catch(e){}
+}
+function clearAuth(){
+  session = { authed:false, phone:'' };
+  localStorage.removeItem(AUTH_KEY);
+}
+
+/* ----------------------------------------------------------------
+   4. SEED DATA
+   ---------------------------------------------------------------- */
+function seedData(){
+  const rooms = [];
+  for(let n=201;n<=208;n++){
+    rooms.push({ id:'room_'+n, roomNumber:String(n), capacity:3, type:'shared', monthlyRent:7500 });
+  }
+
+  const names = [
+    'Mohd Gulfam','Mohd Rizwan','Mohd Anas Shakeel',   // 201
+    'Sahil Sharma','Faizan Ali','Zaheer Ahmed',        // 202
+    'Aman Tiwari','Vikash Singh','Imran Khan',         // 203
+    'Ahmed Khan','Bilal Ahmad','Sameer Rizvi',         // 204
+    'Rehan Ali','Kashif Ansari','Naved Khan',          // 205
+    'Sameer Ali','Danish Khan','Arman Sheikh',         // 206
+    'Umar Farooq','Adil Hussain','Rehan Verma',        // 207
+    'Shahrukh Ali','Mohd Arif','Irfan Khan'            // 208
+  ];
+  const joinDates = ['2025-08-12','2025-09-03','2025-10-21','2026-01-15','2026-02-08','2026-03-19','2026-04-02','2026-06-11'];
+
+  const tenants = names.map(function(name,i){
+    const roomIdx = Math.floor(i/3);
+    return {
+      id:'tenant_'+(i+1),
+      name:name,
+      phone:'+91 98765 '+(43210+i),
+      roomId:rooms[roomIdx].id,
+      monthlyRent:2500,
+      joiningDate:joinDates[i % joinDates.length]
+    };
+  });
+
+  // ---- Electricity bills per room per month (divisible by 3 occupants) ----
+  const billsByMonth = {
+    '2026-08':[840,990,810,840,990,900,930,810],
+    '2026-09':[870,1020,840,870,1020,930,960,840],
+    '2026-10':[900,1050,855,900,1050,960,990,870]
+  };
+  const electricity = [];
+  Object.keys(billsByMonth).forEach(function(month){
+    billsByMonth[month].forEach(function(bill, idx){
+      electricity.push({
+        id:'electricity_'+rooms[idx].roomNumber+'_'+month.replace('-','_'),
+        roomId:rooms[idx].id,
+        month:month,
+        totalBill:bill
       });
+    });
+  });
+
+  // ---- Payments ----
+  const payments = [];
+  let pid = 1;
+  function addPay(tenantId, roomId, type, month, amount, day, mode){
+    if(!amount || amount <= 0) return;
+    payments.push({
+      id:'payment_'+String(pid++).padStart(4,'0'),
+      tenantId:tenantId, roomId:roomId, type:type, month:month,
+      amount:amount,
+      date:month+'-'+String(day).padStart(2,'0'),
+      mode:mode, note:''
+    });
+  }
+
+  function billFor(roomId, month){
+    const rec = electricity.find(function(e){ return e.roomId===roomId && e.month===month; });
+    return rec ? rec.totalBill : 0;
+  }
+
+  // August & September: everyone fully paid
+  ['2026-08','2026-09'].forEach(function(month){
+    tenants.forEach(function(t, i){
+      const share = billFor(t.roomId, month) / 3;
+      addPay(t.id, t.roomId, 'rent', month, 2500, 5 + (i % 20), i % 3 === 0 ? 'UPI' : (i % 3 === 1 ? 'Cash' : 'Bank Transfer'));
+      addPay(t.id, t.roomId, 'electricity', month, share, 6 + (i % 20), i % 2 === 0 ? 'UPI' : 'Cash');
+    });
+  });
+
+  // October: mixed states (index -> [rentPaid, elecPaid])
+  const oct = [
+    [0,150],[2500,300],[1500,150],      // 201..204 tenants 1-3 (room204 actually) -> note order below
+    [2500,300],[1000,0],[2500,300],     // 201
+    [0,0],[2500,0],[1500,175],          // 202
+    [0,0],[2500,285],[2500,285],        // 203
+    [2500,350],[2500,350],[2500,350],   // 205
+    [0,0],[2500,320],[1200,160],        // 206
+    [2500,330],[2500,330],[2500,0],     // 207
+    [0,0],[2500,290],[2500,145]         // 208
+  ];
+  // re-map: tenants 0,1,2 are room 201 per seed order; fix October table ordering:
+  const octFixed = [
+    [2500,300],[1000,0],[2500,300],     // 201
+    [0,0],[2500,0],[1500,175],          // 202
+    [0,0],[2500,285],[2500,285],        // 203
+    [0,150],[2500,300],[1500,150],      // 204
+    [2500,350],[2500,350],[2500,350],   // 205
+    [0,0],[2500,320],[1200,160],        // 206
+    [2500,330],[2500,330],[2500,0],     // 207
+    [0,0],[2500,290],[2500,145]         // 208
+  ];
+
+  tenants.forEach(function(t, i){
+    const cfg = octFixed[i] || [0,0];
+    addPay(t.id, t.roomId, 'rent', '2026-10', cfg[0], 3 + (i % 18), i % 3 === 0 ? 'UPI' : (i % 3 === 1 ? 'Cash' : 'Bank Transfer'));
+    addPay(t.id, t.roomId, 'electricity', '2026-10', cfg[1], 4 + (i % 18), i % 2 === 0 ? 'UPI' : 'Cash');
+  });
+
+  // ---- Complaints ----
+  const complaints = [
+    { id:'C-012', title:'Water Leakage', tenantId:'tenant_10', roomId:'room_204',
+      description:'Water is leaking from the bathroom ceiling.', status:'open', createdAt:'2026-10-15T10:24:00', icon:'droplet', tone:'red' },
+    { id:'C-011', title:'Wi-Fi not working', tenantId:'tenant_5', roomId:'room_202',
+      description:'Wi-Fi router is not broadcasting any signal since last night.', status:'in-progress', createdAt:'2026-10-15T07:10:00', icon:'wifi', tone:'blue' },
+    { id:'C-010', title:'Bathroom light issue', tenantId:'tenant_2', roomId:'room_201',
+      description:'Bathroom light is flickering and sometimes does not turn on.', status:'open', createdAt:'2026-10-14T18:00:00', icon:'bulb', tone:'amber' },
+    { id:'C-009', title:'Fan not working', tenantId:'tenant_8', roomId:'room_203',
+      description:'Ceiling fan stopped working completely.', status:'resolved', createdAt:'2026-10-13T09:00:00', icon:'fan', tone:'purple' },
+    { id:'C-008', title:'Low water pressure', tenantId:'tenant_4', roomId:'room_202',
+      description:'Water pressure in the tap is very low in the morning hours.', status:'in-progress', createdAt:'2026-10-13T07:30:00', icon:'droplet', tone:'blue' },
+    { id:'C-007', title:'Door lock issue', tenantId:'tenant_7', roomId:'room_203',
+      description:'Room door lock is jammed and hard to open.', status:'resolved', createdAt:'2026-10-12T12:15:00', icon:'door', tone:'red' },
+    { id:'C-006', title:'Extra power socket required', tenantId:'tenant_12', roomId:'room_204',
+      description:'Need one more power socket near the study table.', status:'open', createdAt:'2026-10-12T09:40:00', icon:'plug', tone:'purple' },
+    { id:'C-005', title:'AC not working', tenantId:'tenant_3', roomId:'room_201',
+      description:'Air conditioner is not cooling at all.', status:'in-progress', createdAt:'2026-10-11T16:05:00', icon:'fan', tone:'blue' }
+  ];
+
+  return {
+    version:1,
+    hostel:{
+      name:'HS Height',
+      address:'Near Integral University\nKursi Road, Lucknow, Uttar Pradesh\n226026',
+      ownerName:'Mohd Gulfam',
+      contact:'+91 98765 43210',
+      defaultRoomRent:7500,
+      defaultTenantRent:2500,
+      roomCapacity:3,
+      notes:'NA'
+    },
+    admin:{ name:'Admin', phone:'+91 98765 43210', email:'' },
+    rooms:rooms,
+    tenants:tenants,
+    electricity:electricity,
+    payments:payments,
+    complaints:complaints,
+    reminders:[]
+  };
+}
+
+/* ----------------------------------------------------------------
+   5. HELPERS
+   ---------------------------------------------------------------- */
+function money(n){
+  const v = Math.round((Number(n)||0) * 100) / 100;
+  return '\u20B9' + v.toLocaleString('en-IN', { maximumFractionDigits:2 });
+}
+function moneyShort(n){ return money(n); }
+function r2(n){ return Math.round((Number(n)||0)*100)/100; }
+
+function monthLabel(ym){
+  const p = ym.split('-');
+  return MONTH_NAMES[parseInt(p[1],10)-1] + ' ' + p[0];
+}
+function monthLabelShort(ym){
+  const p = ym.split('-');
+  return MONTH_SHORT[parseInt(p[1],10)-1] + ' ' + p[0];
+}
+function shiftMonth(ym, delta){
+  const p = ym.split('-');
+  let y = parseInt(p[0],10), m = parseInt(p[1],10) + delta;
+  while(m > 12){ m -= 12; y++; }
+  while(m < 1){ m += 12; y--; }
+  return y + '-' + String(m).padStart(2,'0');
+}
+function dateLabel(iso){
+  if(!iso) return '';
+  const p = iso.split('-');
+  if(p.length < 3) return iso;
+  return parseInt(p[2],10) + ' ' + MONTH_SHORT[parseInt(p[1],10)-1] + ' ' + p[0];
+}
+function dateTimeLabel(iso){
+  if(!iso) return '';
+  const d = new Date(iso);
+  if(isNaN(d)) return iso;
+  const hh = d.getHours(); const mm = String(d.getMinutes()).padStart(2,'0');
+  const ampm = hh >= 12 ? 'PM' : 'AM';
+  const h12 = hh % 12 === 0 ? 12 : hh % 12;
+  return d.getDate() + ' ' + MONTH_SHORT[d.getMonth()] + ' ' + d.getFullYear() + ', ' + h12 + ':' + mm + ' ' + ampm;
+}
+function relTime(iso){
+  const d = new Date(iso); if(isNaN(d)) return '';
+  const diff = (new Date('2026-10-15T13:00:00') - d) / 3600000;
+  if(diff < 1) return 'Just now';
+  if(diff < 24) return Math.round(diff) + ' hours ago';
+  return Math.round(diff/24) + ' days ago';
+}
+function initials(name){
+  const parts = String(name||'').trim().split(/\s+/).filter(Boolean);
+  if(!parts.length) return '?';
+  if(parts.length === 1) return parts[0].substring(0,2).toUpperCase();
+  return (parts[0][0] + parts[parts.length-1][0]).toUpperCase();
+}
+const AVATAR_TONES = [
+  ['#EAF1FE','#0D63F3'], ['#E7F7EE','#12A150'], ['#FDECEC','#E5484D'],
+  ['#FFF4E0','#C97A00'], ['#F1EDFE','#7C5CFC'], ['#E6F7FA','#0E8FA8'],
+  ['#FDEBF6','#C2187A']
+];
+function toneFor(str){
+  let h = 0;
+  for(let i=0;i<String(str).length;i++){ h = (h*31 + String(str).charCodeAt(i)) % 997; }
+  return AVATAR_TONES[h % AVATAR_TONES.length];
+}
+function avatar(name, cls){
+  const t = toneFor(name);
+  return '<div class="avatar '+(cls||'')+'" style="background:'+t[0]+';color:'+t[1]+'">'+initials(name)+'</div>';
+}
+function statusPill(status){
+  const map = {
+    paid:['pill-paid','Paid'],
+    unpaid:['pill-unpaid','Unpaid'],
+    partial:['pill-partial','Partial'],
+    open:['pill-open','Open'],
+    'in-progress':['pill-in-progress','In Progress'],
+    resolved:['pill-resolved','Resolved']
+  };
+  const m = map[status] || ['pill-neutral', status];
+  return '<span class="pill '+m[0]+'">'+m[1]+'</span>';
+}
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+
+/* ----------------------------------------------------------------
+   6. LOOKUPS
+   ---------------------------------------------------------------- */
+function getTenant(id){ return DB.tenants.find(function(t){ return t.id===id; }); }
+function getRoom(id){ return DB.rooms.find(function(r){ return r.id===id; }); }
+function getRoomByNumber(num){ return DB.rooms.find(function(r){ return r.roomNumber===String(num); }); }
+function roomOccupants(roomId){ return DB.tenants.filter(function(t){ return t.roomId===roomId; }); }
+function getComplaint(id){ return DB.complaints.find(function(c){ return c.id===id; }); }
+
+function elecRecord(roomId, month){
+  return DB.electricity.find(function(e){ return e.roomId===roomId && e.month===month; });
+}
+function elecBillFor(roomId, month){
+  const rec = elecRecord(roomId, month);
+  return rec ? rec.totalBill : 0;
+}
+function elecShareFor(tenant, month){
+  const occ = roomOccupants(tenant.roomId).length;
+  if(!occ) return 0;
+  return r2(elecBillFor(tenant.roomId, month) / occ);
+}
+
+/* ----------------------------------------------------------------
+   7. CALCULATIONS (single source of truth)
+   ---------------------------------------------------------------- */
+function rentPaidFor(tenantId, month){
+  return r2(DB.payments
+    .filter(function(p){ return p.tenantId===tenantId && p.month===month && p.type==='rent'; })
+    .reduce(function(s,p){ return s + p.amount; }, 0));
+}
+function elecPaidFor(tenantId, month){
+  return r2(DB.payments
+    .filter(function(p){ return p.tenantId===tenantId && p.month===month && p.type==='electricity'; })
+    .reduce(function(s,p){ return s + p.amount; }, 0));
+}
+function calculateRentDue(tenant, month){
+  return Math.max(0, r2(tenant.monthlyRent - rentPaidFor(tenant.id, month)));
+}
+function calculateElectricityDue(tenant, month){
+  return Math.max(0, r2(elecShareFor(tenant, month) - elecPaidFor(tenant.id, month)));
+}
+function calculateTenantStatus(paid, expected){
+  if(paid <= 0) return 'unpaid';
+  if(paid < expected - 0.009) return 'partial';
+  return 'paid';
+}
+function tenantRentStatus(tenant, month){
+  return calculateTenantStatus(rentPaidFor(tenant.id, month), tenant.monthlyRent);
+}
+function tenantElecStatus(tenant, month){
+  const share = elecShareFor(tenant, month);
+  if(share <= 0) return 'paid';
+  return calculateTenantStatus(elecPaidFor(tenant.id, month), share);
+}
+function tenantTotalDue(tenant, month){
+  return r2(calculateRentDue(tenant, month) + calculateElectricityDue(tenant, month));
+}
+function tenantTotalStatus(tenant, month){
+  if(tenantTotalDue(tenant, month) <= 0) return 'paid';
+  const paidAny = rentPaidFor(tenant.id, month) > 0 || elecPaidFor(tenant.id, month) > 0;
+  return paidAny ? 'partial' : 'unpaid';
+}
+
+function calculateRoomFinancials(roomId, month){
+  const occ = roomOccupants(roomId);
+  const totalRent = r2(occ.reduce(function(s,t){ return s + t.monthlyRent; }, 0));
+  const rentCollected = r2(occ.reduce(function(s,t){ return s + rentPaidFor(t.id, month); }, 0));
+  const rentOutstanding = Math.max(0, r2(totalRent - rentCollected));
+  const elecBill = elecBillFor(roomId, month);
+  const elecCollected = r2(occ.reduce(function(s,t){ return s + elecPaidFor(t.id, month); }, 0));
+  const elecOutstanding = Math.max(0, r2(elecBill - elecCollected));
+  const share = occ.length ? r2(elecBill / occ.length) : 0;
+  return {
+    occupants: occ.length,
+    totalRent: totalRent,
+    rentCollected: rentCollected,
+    rentOutstanding: rentOutstanding,
+    elecBill: elecBill,
+    elecCollected: elecCollected,
+    elecOutstanding: elecOutstanding,
+    elecShare: share,
+    capacity: getRoom(roomId) ? getRoom(roomId).capacity : 3
+  };
+}
+
+function calculateDashboardTotals(month){
+  const tenants = DB.tenants;
+  const expectedRent = r2(tenants.reduce(function(s,t){ return s + t.monthlyRent; }, 0));
+  const rentCollected = r2(DB.payments
+    .filter(function(p){ return p.month===month && p.type==='rent'; })
+    .reduce(function(s,p){ return s + p.amount; }, 0));
+  const rentDue = Math.max(0, r2(expectedRent - rentCollected));
+
+  const elecBill = r2(DB.electricity
+    .filter(function(e){ return e.month===month; })
+    .reduce(function(s,e){ return s + e.totalBill; }, 0));
+  const elecCollected = r2(DB.payments
+    .filter(function(p){ return p.month===month && p.type==='electricity'; })
+    .reduce(function(s,p){ return s + p.amount; }, 0));
+  const elecDue = Math.max(0, r2(elecBill - elecCollected));
+
+  const occupiedRooms = DB.rooms.filter(function(r){ return roomOccupants(r.id).length > 0; }).length;
+
+  const dueTenants = tenants.filter(function(t){ return tenantTotalDue(t, month) > 0; }).length;
+  const rentDueTenants = tenants.filter(function(t){ return calculateRentDue(t, month) > 0; }).length;
+  const elecDueTenants = tenants.filter(function(t){ return calculateElectricityDue(t, month) > 0; }).length;
+
+  return {
+    expectedRent: expectedRent,
+    rentCollected: rentCollected,
+    rentDue: rentDue,
+    elecBill: elecBill,
+    elecCollected: elecCollected,
+    elecDue: elecDue,
+    totalTenants: tenants.length,
+    occupiedRooms: occupiedRooms,
+    totalRooms: DB.rooms.length,
+    dueTenants: dueTenants,
+    rentDueTenants: rentDueTenants,
+    elecDueTenants: elecDueTenants,
+    totalOutstanding: r2(rentDue + elecDue)
+  };
+}
+
+/* ----------------------------------------------------------------
+   8. NAVIGATION
+   ---------------------------------------------------------------- */
+function navigate(screen, params, opts){
+  opts = opts || {};
+  if(!opts.replace && UI.screen !== screen){
+    UI.stack.push({ screen:UI.screen, params:UI.params });
+    if(UI.stack.length > 40) UI.stack.shift();
+  }
+  UI.screen = screen;
+  UI.params = params || {};
+  window.scrollTo(0,0);
+  render();
+}
+function back(){
+  const prev = UI.stack.pop();
+  if(prev){ UI.screen = prev.screen; UI.params = prev.params; }
+  else { UI.screen = 'home'; UI.params = {}; }
+  window.scrollTo(0,0);
+  render();
+}
+function currentTab(){
+  const s = UI.screen;
+  if(s === 'home') return 'home';
+  if(s.indexOf('tenant') === 0) return 'tenants';
+  if(s === 'rent' || s === 'electricity' || s === 'electricity-details' || s === 'financial') return 'rent';
+  return 'more';
+}
+
+/* ----------------------------------------------------------------
+   9. TOASTS / CONFIRM / SHEETS
+   ---------------------------------------------------------------- */
+function showToast(msg, type){
+  const root = document.getElementById('toast-root');
+  const el = document.createElement('div');
+  el.className = 'toast ' + (type || 'info');
+  let ic = 'info';
+  if(type === 'success') ic = 'checkCircle';
+  if(type === 'error') ic = 'alert';
+  el.innerHTML = icon(ic,18) + '<span>' + esc(msg) + '</span>';
+  root.appendChild(el);
+  setTimeout(function(){
+    el.style.transition = 'opacity .25s, transform .25s';
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(8px)';
+    setTimeout(function(){ el.remove(); }, 260);
+  }, 2400);
+}
+
+let confirmResolver = null;
+function confirmDialog(title, message, confirmLabel, danger){
+  const root = document.getElementById('sheet-root');
+  const wrap = document.createElement('div');
+  wrap.className = 'modal-backdrop';
+  wrap.innerHTML =
+    '<div class="modal" role="dialog" aria-modal="true">' +
+      '<h3>' + esc(title) + '</h3>' +
+      '<p>' + esc(message) + '</p>' +
+      '<div class="btn-row">' +
+        '<button class="btn btn-ghost" data-confirm="0">Cancel</button>' +
+        '<button class="btn ' + (danger ? 'btn-danger' : 'btn-primary') + '" data-confirm="1">' + esc(confirmLabel||'Confirm') + '</button>' +
+      '</div>' +
+    '</div>';
+  root.appendChild(wrap);
+  wrap.addEventListener('click', function(e){
+    const btn = e.target.closest('[data-confirm]');
+    if(!btn && e.target !== wrap) return;
+    const val = btn ? btn.dataset.confirm === '1' : false;
+    wrap.remove();
+    if(confirmResolver) confirmResolver(val);
+    confirmResolver = null;
+  });
+}
+
+function openSheet(html){
+  const root = document.getElementById('sheet-root');
+  root.innerHTML = '<div class="sheet-backdrop" data-action="sheet-backdrop"><section class="sheet" role="dialog" aria-modal="true">' +
+    '<div class="drag-handle"></div>' + html + '</section></div>';
+}
+function closeSheet(){
+  document.getElementById('sheet-root').innerHTML = '';
+  UI.sheet = null;
+}
+function openDrawer(){
+  const items = [
+    ['home','Home','home','bg-blue'],
+    ['tenants','Tenants','users','bg-green'],
+    ['rooms','Rooms','bed','bg-purple'],
+    ['rent','Rent','wallet','bg-blue'],
+    ['electricity','Electricity','zap','bg-amber'],
+    ['complaints','Complaints','wrench','bg-red'],
+    ['financial','Financial Records','chart','bg-purple'],
+    ['hostel-info','Hostel Information','building','bg-blue'],
+    ['admin-profile','Admin Profile','user','bg-green']
+  ];
+  let html = '<div class="drawer-backdrop" data-action="close-drawer"><aside class="drawer">';
+  html += '<div class="drawer-head">' + avatar(DB.hostel.name,'') +
+          '<div><div style="font-weight:800;font-size:17px">' + esc(DB.hostel.name) + '</div>' +
+          '<div style="font-size:12px;color:var(--muted)">Hostel Management</div></div></div>';
+  items.forEach(function(it){
+    html += '<button class="drawer-link" data-action="go" data-screen="' + it[0] + '">' +
+            '<span class="di ' + it[3] + '">' + icon(it[2],18) + '</span>' + it[1] + '</button>';
+  });
+  html += '<div class="divider"></div>';
+  html += '<button class="drawer-link" data-action="logout"><span class="di bg-red">' + icon('logout',18) + '</span>Logout</button>';
+  html += '</aside></div>';
+  document.getElementById('sheet-root').innerHTML = html;
+}
+function closeDrawer(){ document.getElementById('sheet-root').innerHTML = ''; }
+
+/* ----------------------------------------------------------------
+   10. RENDER ROOT
+   ---------------------------------------------------------------- */
+function render(){
+  const app = document.getElementById('app');
+  if(!session.authed){
+    app.innerHTML = loginScreen();
+    return;
+  }
+  const cfg = topBarConfig();
+  app.innerHTML =
+    '<div class="shell">' +
+      topBar(cfg) +
+      '<main class="content screen-anim" id="main-content">' + screenContent() + '</main>' +
+      bottomNav() +
+    '</div>';
+}
+
+function topBarConfig(){
+  const s = UI.screen;
+  const rootScreens = ['home','tenants','rent','more'];
+  if(rootScreens.indexOf(s) >= 0) return { root:true, title:null };
+  return { root:false, title:null };
+}
+
+function topBar(cfg){
+  let left, right;
+  if(cfg.root){
+    left = '<button class="icon-btn" data-action="open-drawer" aria-label="Menu">' + icon('menu',22) + '</button>';
+    right = '<button class="icon-btn" data-action="go" data-screen="admin-profile" aria-label="Profile">' + icon('user',22) + '</button>';
+  } else {
+    left = '<button class="icon-btn" data-action="back" aria-label="Back">' + icon('arrowLeft',22) + '</button>';
+    right = '<button class="icon-btn" data-action="open-drawer" aria-label="More">' + icon('moreV',22) + '</button>';
+  }
+  return '<header class="topbar">' + left +
+    '<div class="brand"><span class="b1">HS</span> <span class="b2">Height</span></div>' +
+    right + '</header>';
+}
+
+function bottomNav(){
+  const tab = currentTab();
+  const items = [
+    ['home','Home','home'],
+    ['tenants','Tenants','users'],
+    ['rent','Rent','wallet'],
+    ['more','More','more']
+  ];
+  let html = '<nav class="bottom-nav" aria-label="Primary">';
+  items.forEach(function(it){
+    const active = tab === it[0] ? ' active' : '';
+    html += '<button class="nav-item' + active + '" data-action="go" data-screen="' + it[0] + '" aria-current="' + (active?'page':'false') + '">' +
+      icon(it[2],22) + '<span>' + it[1] + '</span></button>';
+  });
+  html += '</nav>';
+  return html;
+}
+
+/* ----------------------------------------------------------------
+   11. LOGIN SCREEN
+   ---------------------------------------------------------------- */
+function loginScreen(){
+  return '<div class="login">' +
+    '<div class="login-logo">HS</div>' +
+    '<div class="login-brand"><span class="b1">HS</span> <span class="b2">Height</span></div>' +
+    '<div class="login-tag">HOSTEL MANAGEMENT</div>' +
+    '<form class="login-card" id="login-form" novalidate>' +
+      '<h1>Welcome back</h1>' +
+      '<p class="sub">Sign in to manage your hostel</p>' +
+      '<div class="field">' +
+        '<label for="login-phone">Mobile Number</label>' +
+        '<div class="input-wrap">' +
+          '<span style="font-weight:700;color:var(--navy)">+91</span>' +
+          '<span style="width:1px;height:22px;background:var(--line)"></span>' +
+          icon('phone',18) +
+          '<input id="login-phone" name="phone" type="tel" inputmode="numeric" maxlength="10" placeholder="Enter mobile number" autocomplete="tel">' +
+        '</div>' +
+        '<div class="err" id="login-err" style="display:none"></div>' +
+      '</div>' +
+      '<button class="btn btn-primary btn-block" type="submit" id="login-btn">Continue ' + icon('arrowRight',18) + '</button>' +
+      '<div class="secure">' +
+        '<span class="lock">' + icon('lock',16) + '</span>' +
+        '<span>Only authorized hostel owners<br>can access this account.</span>' +
+      '</div>' +
+    '</form>' +
+  '</div>';
+}
+
+/* ----------------------------------------------------------------
+   12. SCREEN ROUTER
+   ---------------------------------------------------------------- */
+function screenContent(){
+  switch(UI.screen){
+    case 'home': return renderDashboard();
+    case 'tenants': return renderTenants();
+    case 'tenant-add': return renderTenantForm('add');
+    case 'tenant-edit': return renderTenantForm('edit');
+    case 'tenant-details': return renderTenantDetails();
+    case 'rooms': return renderRooms();
+    case 'room-add': return renderRoomForm('add');
+    case 'room-edit': return renderRoomForm('edit');
+    case 'room-details': return renderRoomDetails();
+    case 'rent': return renderRent();
+    case 'electricity': return renderElectricity();
+    case 'electricity-details': return renderElectricityDetails();
+    case 'financial': return renderFinancialRecords();
+    case 'complaints': return renderComplaints();
+    case 'complaint-add': return renderComplaintForm();
+    case 'complaint-details': return renderComplaintDetails();
+    case 'more': return renderMore();
+    case 'hostel-info': return renderHostelInfo();
+    case 'admin-profile': return renderAdminProfile();
+    default: return renderDashboard();
+  }
+}
+
+/* ----------------------------------------------------------------
+   13. HOME DASHBOARD
+   ---------------------------------------------------------------- */
+function monthSelector(){
+  return '<div class="month-selector">' +
+    '<button data-action="month" data-delta="-1" aria-label="Previous month">' + icon('chevLeft',18) + '</button>' +
+    '<span class="month-label">' + monthLabel(UI.month) + '</span>' +
+    '<button data-action="month" data-delta="1" aria-label="Next month">' + icon('chevRight',18) + '</button>' +
+  '</div>';
+}
+
+function renderDashboard(){
+  const m = UI.month;
+  const T = calculateDashboardTotals(m);
+
+  const recentPayments = DB.payments.slice()
+    .sort(function(a,b){ return (b.date + b.id).localeCompare(a.date + a.id); })
+    .slice(0,4);
+
+  const recentComplaints = DB.complaints.slice()
+    .sort(function(a,b){ return b.createdAt.localeCompare(a.createdAt); })
+    .slice(0,3);
+
+  let h = '';
+  h += monthSelector();
+
+  // Outstanding hero
+  h += '<div class="card tint-red" style="padding:18px">' +
+        '<div style="display:flex;align-items:center;gap:14px">' +
+          '<div class="stat-icon bg-red" style="width:46px;height:46px;margin:0">' + icon('alert',22) + '</div>' +
+          '<div style="flex:1">' +
+            '<div class="stat-label">Outstanding Amount</div>' +
+            '<div class="stat-value" style="color:var(--red);font-size:30px">' + money(T.totalOutstanding) + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="btn-row" style="margin-top:14px">' +
+          '<button class="btn btn-ghost btn-sm" data-action="go" data-screen="rent" data-patch=\'{"rentFilter":"unpaid"}\'>Rent Due ' + money(T.rentDue) + '</button>' +
+          '<button class="btn btn-ghost btn-sm" data-action="go" data-screen="electricity" data-patch=\'{"elecFilter":"unpaid"}\'>Elec Due ' + money(T.elecDue) + '</button>' +
+        '</div>' +
+      '</div>';
+
+  // Financial grid
+  h += '<div class="grid2">' +
+    '<button class="stat tint-green" data-action="go" data-screen="rent">' +
+      '<div class="stat-icon bg-green">' + icon('wallet',18) + '</div>' +
+      '<div class="stat-label">Rent Collected</div>' +
+      '<div class="stat-value" style="color:var(--green)">' + money(T.rentCollected) + '</div>' +
+      '<div class="stat-foot">This month</div>' +
+    '</button>' +
+    '<button class="stat tint-red" data-action="go" data-screen="rent" data-patch=\'{"rentFilter":"unpaid"}\'>' +
+      '<div class="stat-icon bg-red">' + icon('clock',18) + '</div>' +
+      '<div class="stat-label">Rent Due</div>' +
+      '<div class="stat-value" style="color:var(--red)">' + money(T.rentDue) + '</div>' +
+      '<div class="stat-foot">' + T.rentDueTenants + ' tenants pending</div>' +
+    '</button>' +
+    '<button class="stat tint-blue" data-action="go" data-screen="electricity">' +
+      '<div class="stat-icon bg-blue">' + icon('zap',18) + '</div>' +
+      '<div class="stat-label">Electricity Collected</div>' +
+      '<div class="stat-value" style="color:var(--blue)">' + money(T.elecCollected) + '</div>' +
+      '<div class="stat-foot">This month</div>' +
+    '</button>' +
+    '<button class="stat tint-amber" data-action="go" data-screen="electricity" data-patch=\'{"elecFilter":"unpaid"}\'>' +
+      '<div class="stat-icon bg-amber">' + icon('zap',18) + '</div>' +
+      '<div class="stat-label">Electricity Due</div>' +
+      '<div class="stat-value" style="color:var(--amber)">' + money(T.elecDue) + '</div>' +
+      '<div class="stat-foot">' + T.elecDueTenants + ' tenants pending</div>' +
+    '</button>' +
+  '</div>';
+
+  // Counters
+  h += '<div class="grid2 tight">' +
+    '<button class="stat tint-purple" data-action="go" data-screen="tenants">' +
+      '<div class="stat-icon bg-purple">' + icon('users',18) + '</div>' +
+      '<div class="stat-label">Total Tenants</div>' +
+      '<div class="stat-value">' + T.totalTenants + '</div>' +
+      '<div class="stat-foot">Across ' + T.occupiedRooms + ' rooms</div>' +
+    '</button>' +
+    '<button class="stat tint-blue" data-action="go" data-screen="rooms">' +
+      '<div class="stat-icon bg-blue">' + icon('bed',18) + '</div>' +
+      '<div class="stat-label">Occupied Rooms</div>' +
+      '<div class="stat-value">' + T.occupiedRooms + ' / ' + T.totalRooms + '</div>' +
+      '<div class="stat-foot">' + (T.totalRooms - T.occupiedRooms) + ' available</div>' +
+    '</button>' +
+  '</div>';
+
+  // Recent payments
+  h += '<div class="card flush">' +
+    '<div style="padding:16px 16px 10px" class="section-head">' +
+      '<h3 class="section-title">Recent Payments</h3>' +
+      '<button class="link" data-action="go" data-screen="financial">View All ' + icon('arrowRight',15) + '</button>' +
+    '</div>';
+  if(!recentPayments.length){
+    h += '<div class="empty"><p>No payments recorded yet.</p></div>';
+  } else {
+    h += '<div class="list">';
+    recentPayments.forEach(function(p){
+      const t = getTenant(p.tenantId);
+      const room = t ? getRoom(t.roomId) : null;
+      const label = p.type === 'rent' ? 'Rent' : 'Electricity';
+      h += '<div class="row">' + avatar(t ? t.name : '?', 'sm') +
+        '<div class="row-main">' +
+          '<div class="row-title truncate">' + esc(t ? t.name : 'Unknown') + '</div>' +
+          '<div class="row-sub">Room ' + esc(room ? room.roomNumber : '-') + ' &bull; ' + label + '</div>' +
+        '</div>' +
+        '<div class="row-right">' +
+          '<div class="amount paid">' + money(p.amount) + '</div>' +
+          '<div class="row-sub">' + dateLabel(p.date) + '</div>' +
+        '</div>' +
+      '</div>';
+    });
+    h += '</div>';
+  }
+  h += '</div>';
+
+  // Recent complaints
+  h += '<div class="card flush">' +
+    '<div style="padding:16px 16px 10px" class="section-head">' +
+      '<h3 class="section-title">Recent Complaints</h3>' +
+      '<button class="link" data-action="go" data-screen="complaints">View All ' + icon('arrowRight',15) + '</button>' +
+    '</div>';
+  if(!recentComplaints.length){
+    h += '<div class="empty"><p>No complaints reported.</p></div>';
+  } else {
+    h += '<div class="list">';
+    recentComplaints.forEach(function(c){
+      const t = getTenant(c.tenantId);
+      const room = getRoom(c.roomId);
+      h += '<button class="row" data-action="go" data-screen="complaint-details" data-id="' + c.id + '">' +
+        '<div class="stat-icon ' + (c.status==='open'?'bg-red':(c.status==='in-progress'?'bg-amber':'bg-green')) + '" style="width:40px;height:40px;margin:0">' + icon(c.icon||'wrench',18) + '</div>' +
+        '<div class="row-main">' +
+          '<div class="row-title truncate">' + esc(c.title) + '</div>' +
+          '<div class="row-sub">Room ' + esc(room ? room.roomNumber : '-') + ' &bull; ' + esc(t ? t.name : '-') + '</div>' +
+        '</div>' +
+        '<div class="row-right">' + statusPill(c.status) +
+          '<div class="row-sub">' + relTime(c.createdAt) + '</div>' +
+        '</div>' +
+      '</button>';
+    });
+    h += '</div>';
+  }
+  h += '</div>';
+
+  return h;
+}
+
+/* ----------------------------------------------------------------
+   14. TENANTS SCREEN
+   ---------------------------------------------------------------- */
+function tenantMatchesSearch(t, q){
+  if(!q) return true;
+  q = q.toLowerCase();
+  const room = getRoom(t.roomId);
+  return t.name.toLowerCase().indexOf(q) >= 0 ||
+         t.phone.toLowerCase().indexOf(q) >= 0 ||
+         (room && room.roomNumber.indexOf(q) >= 0);
+}
+
+function renderTenants(){
+  const m = UI.month;
+  let list = DB.tenants.slice().sort(function(a,b){
+    const ra = getRoom(a.roomId), rb = getRoom(b.roomId);
+    const na = ra ? parseInt(ra.roomNumber,10) : 0;
+    const nb = rb ? parseInt(rb.roomNumber,10) : 0;
+    if(na !== nb) return na - nb;
+    return a.name.localeCompare(b.name);
+  });
+
+  const total = list.length;
+  list = list.filter(function(t){ return tenantMatchesSearch(t, UI.tenantSearch); });
+
+  if(UI.tenantFilter === 'due'){
+    list = list.filter(function(t){ return tenantTotalDue(t, m) > 0; });
+  } else if(UI.tenantFilter === 'paid'){
+    list = list.filter(function(t){ return tenantTotalDue(t, m) <= 0; });
+  }
+
+  const dueCount = DB.tenants.filter(function(t){ return tenantTotalDue(t, m) > 0; }).length;
+  const paidCount = total - dueCount;
+
+  let h = '';
+  h += '<div class="page-head">' +
+      '<div><h1 class="page-title">Tenants <span class="count-badge">' + total + '</span></h1>' +
+      '<p class="page-sub">Manage all tenants living in your hostel</p></div>' +
+      '<button class="btn btn-primary btn-sm" data-action="go" data-screen="tenant-add">' + icon('plus',16) + ' Add Tenant</button>' +
+    '</div>';
+
+  h += '<div class="search">' + icon('search',18) +
+      '<input type="search" placeholder="Search tenant or mobile number..." value="' + esc(UI.tenantSearch) + '" data-search="tenantSearch" aria-label="Search tenants">' +
+    '</div>';
+
+  h += '<div class="chip-row">' +
+      '<button class="chip' + (UI.tenantFilter==='all'?' active':'') + '" data-action="filter" data-group="tenantFilter" data-value="all">All (' + total + ')</button>' +
+      '<button class="chip' + (UI.tenantFilter==='due'?' active':'') + '" data-action="filter" data-group="tenantFilter" data-value="due">Due (' + dueCount + ')</button>' +
+      '<button class="chip' + (UI.tenantFilter==='paid'?' active':'') + '" data-action="filter" data-group="tenantFilter" data-value="paid">Paid (' + paidCount + ')</button>' +
+      '<button class="chip" data-action="noop">' + icon('filter',15) + '</button>' +
+    '</div>';
+
+  if(!list.length){
+    h += '<div class="card"><div class="empty">' +
+      '<div class="ic-wrap">' + icon('users',26) + '</div>' +
+      '<h4>' + (DB.tenants.length ? 'No tenants match your search.' : 'No tenants found.') + '</h4>' +
+      '<p>Try a different name, mobile number or room.</p>' +
+    '</div></div>';
+    return h;
+  }
+
+  h += '<div class="card flush"><div class="list">';
+  list.forEach(function(t){
+    const room = getRoom(t.roomId);
+    const rentDue = calculateRentDue(t, m);
+    const elecDue = calculateElectricityDue(t, m);
+    const totalDue = r2(rentDue + elecDue);
+    const status = tenantTotalStatus(t, m);
+    const share = elecShareFor(t, m);
+    const t2 = toneFor(t.name);
+
+    h += '<button class="row" data-action="go" data-screen="tenant-details" data-id="' + t.id + '">' +
+      avatar(t.name) +
+      '<div class="row-main">' +
+        '<div class="row-title truncate">' + esc(t.name) + '</div>' +
+        '<div class="row-sub">' + esc(t.phone) + '</div>' +
+        '<div class="row-sub" style="color:var(--blue);font-weight:600">' + icon('bed',13) + ' Room ' + esc(room ? room.roomNumber : '-') + '</div>' +
+      '</div>' +
+      '<div style="text-align:right;min-width:78px">' +
+        '<div style="font-size:11px;color:var(--muted);font-weight:600">Rent</div>' +
+        '<div style="font-weight:700;font-size:13.5px">' + money(t.monthlyRent) + '</div>' +
+        '<div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:4px">Electricity</div>' +
+        '<div style="font-weight:700;font-size:13.5px;color:var(--amber)">' + money(share) + '</div>' +
+      '</div>' +
+      '<div class="row-right" style="min-width:88px">' +
+        (totalDue > 0
+          ? '<span class="pill pill-unpaid">' + money(totalDue) + ' Due</span>'
+          : '<span class="pill pill-paid">Paid</span>') +
+      '</div>' +
+      '<span style="color:#B7C2D8">' + icon('chevRight',18) + '</span>' +
+    '</button>';
+  });
+  h += '</div></div>';
+  return h;
+}
+
+/* ----------------------------------------------------------------
+   15. ADD / EDIT TENANT
+   ---------------------------------------------------------------- */
+function renderTenantForm(mode){
+  const editing = mode === 'edit';
+  const t = editing ? getTenant(UI.params.id) : null;
+  if(editing && !t){
+    return '<div class="card"><div class="empty"><h4>Tenant not found.</h4></div></div>';
+  }
+  const rooms = DB.rooms.slice().sort(function(a,b){ return parseInt(a.roomNumber,10)-parseInt(b.roomNumber,10); });
+  const preselectRoom = UI.params.roomId || (t ? t.roomId : '');
+
+  let h = '';
+  h += '<h1 class="page-title">' + (editing ? 'Edit Tenant' : 'Add Tenant') + '</h1>';
+  h += '<p class="page-sub" style="margin-bottom:18px">' +
+       (editing ? 'Update tenant details' : 'Add a new tenant to your hostel') + '</p>';
+
+  h += '<form id="tenant-form" novalidate data-mode="' + mode + '" data-id="' + (t ? t.id : '') + '">';
+
+  h += '<div class="field"><label for="tf-name">Full Name <span class="req">*</span></label>' +
+       '<div class="input-wrap">' + icon('user',18) +
+       '<input id="tf-name" name="name" type="text" placeholder="Enter full name" value="' + esc(t ? t.name : '') + '">' +
+       '</div></div>';
+
+  h += '<div class="field"><label for="tf-phone">Mobile Number <span class="req">*</span></label>' +
+       '<div class="input-wrap"><span style="font-weight:700;color:var(--navy)">+91</span>' +
+       '<span style="width:1px;height:22px;background:var(--line)"></span>' + icon('phone',18) +
+       '<input id="tf-phone" name="phone" type="tel" inputmode="numeric" maxlength="10" placeholder="Enter mobile number" value="' +
+       esc(t ? String(t.phone).replace(/^\+91\s*/,'').replace(/\s/g,'') : '') + '">' +
+       '</div></div>';
+
+  h += '<div class="field"><label for="tf-room">Room Number <span class="req">*</span></label>' +
+       '<div class="input-wrap select-wrap">' + icon('bed',18) +
+       '<select id="tf-room" name="roomId">' +
+       '<option value="">Select room number</option>';
+  rooms.forEach(function(r){
+    const occ = roomOccupants(r.id).length;
+    const isCurrent = preselectRoom === r.id;
+    const full = occ >= r.capacity;
+    if(full && !isCurrent) return;
+    h += '<option value="' + r.id + '"' + (isCurrent ? ' selected' : '') + '>' +
+         'Room ' + r.roomNumber + ' (' + occ + '/' + r.capacity + ' occupied)' + '</option>';
+  });
+  h += '</select><span class="chev">' + icon('chevDown',18) + '</span></div>' +
+       '<div class="hint">Only rooms with available capacity are listed.</div></div>';
+
+  h += '<div class="field"><label for="tf-rent">Monthly Rent <span class="req">*</span></label>' +
+       '<div class="input-wrap">' + icon('rupee',18) +
+       '<input id="tf-rent" name="monthlyRent" type="number" inputmode="numeric" min="0" step="50" placeholder="Enter monthly rent" value="' +
+       (t ? t.monthlyRent : DB.hostel.defaultTenantRent) + '">' +
+       '</div>' +
+       '<div class="hint">Default rent per tenant is ' + money(DB.hostel.defaultTenantRent) + ' (room rent ' + money(DB.hostel.defaultRoomRent) + ' &divide; 3).</div></div>';
+
+  h += '<div class="field"><label for="tf-join">Date of Joining <span class="req">*</span></label>' +
+       '<div class="input-wrap">' + icon('calendar',18) +
+       '<input id="tf-join" name="joiningDate" type="date" value="' + esc(t ? t.joiningDate : '2026-10-01') + '">' +
+       '</div></div>';
+
+  h += '<div class="card tint-blue" style="display:flex;gap:12px;align-items:flex-start">' +
+       '<div class="stat-icon bg-blue" style="width:36px;height:36px;margin:0">' + icon('info',17) + '</div>' +
+       '<div><div style="font-weight:700;font-size:13.5px">Tenant will be linked to the selected room</div>' +
+       '<div style="font-size:12.5px;color:var(--muted);margin-top:3px">Shared rooms support up to 3 tenants. Electricity is billed per room and split equally among current occupants.</div></div>' +
+       '</div>';
+
+  h += '<div class="err" id="tenant-form-err" style="display:none;margin-bottom:12px"></div>';
+
+  h += '<button class="btn btn-primary btn-block" type="submit">' + icon('check',18) +
+       (editing ? ' Save Changes' : ' Add Tenant') + '</button>';
+
+  if(editing){
+    h += '<button class="btn btn-danger-soft btn-block" type="button" style="margin-top:10px" data-action="delete-tenant" data-id="' + t.id + '">' +
+         icon('trash',17) + ' Delete Tenant</button>';
+  }
+
+  h += '</form>';
+  return h;
+}
+
+/* ----------------------------------------------------------------
+   16. TENANT DETAILS
+   ---------------------------------------------------------------- */
+function renderTenantDetails(){
+  const t = getTenant(UI.params.id);
+  if(!t) return '<div class="card"><div class="empty"><h4>Tenant not found.</h4></div></div>';
+  const m = UI.month;
+  const room = getRoom(t.roomId);
+  const rentDue = calculateRentDue(t, m);
+  const elecDue = calculateElectricityDue(t, m);
+  const share = elecShareFor(t, m);
+  const rentStatus = tenantRentStatus(t, m);
+  const elecStatus = tenantElecStatus(t, m);
+  const totalDue = r2(rentDue + elecDue);
+
+  // Payment history across months
+  const months = ['2026-06','2026-07','2026-08','2026-09','2026-10'].slice().reverse();
+
+  let h = '';
+  // Profile
+  h += '<div class="card">' +
+    '<div style="display:flex;gap:14px;align-items:center">' +
+      avatar(t.name,'lg') +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:20px;font-weight:800;letter-spacing:-.4px">' + esc(t.name) + '</div>' +
+        '<div class="row-sub" style="margin-top:5px">' + icon('phone',13) + ' ' + esc(t.phone) + '</div>' +
+        '<div class="row-sub" style="color:var(--blue);font-weight:600">' + icon('bed',13) + ' Room ' + esc(room ? room.roomNumber : '-') + '</div>' +
+        '<div class="row-sub">Joined on ' + dateLabel(t.joiningDate) + '</div>' +
+      '</div>' +
+      '<button class="btn btn-soft btn-sm" data-action="go" data-screen="tenant-edit" data-id="' + t.id + '">' + icon('edit',15) + ' Edit</button>' +
+    '</div>' +
+  '</div>';
+
+  // Current dues
+  h += '<div class="card">' +
+    '<div class="section-head"><h3 class="section-title">Current Dues</h3>' +
+    '<span class="row-sub">' + icon('calendar',14) + ' ' + monthLabel(m) + '</span></div>' +
+    '<div class="grid2 tight">' +
+      '<div class="stat tint-red" style="box-shadow:none">' +
+        '<div class="stat-icon bg-red">' + icon('home',17) + '</div>' +
+        '<div class="stat-label">Rent</div>' +
+        '<div class="stat-value" style="color:var(--red)">' + money(t.monthlyRent) + '</div>' +
+        statusPill(rentStatus) +
+        '<div class="stat-foot">' + (rentDue > 0 ? 'Due ' + money(rentDue) : 'Fully paid') + '</div>' +
+      '</div>' +
+      '<div class="stat tint-amber" style="box-shadow:none">' +
+        '<div class="stat-icon bg-amber">' + icon('zap',17) + '</div>' +
+        '<div class="stat-label">Electricity</div>' +
+        '<div class="stat-value" style="color:var(--amber)">' + money(share) + '</div>' +
+        statusPill(elecStatus) +
+        '<div class="stat-foot">' + (elecDue > 0 ? 'Due ' + money(elecDue) : 'Fully paid') + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="divider"></div>' +
+    '<div style="display:flex;justify-content:space-between;align-items:center">' +
+      '<span style="font-weight:700">Total Due</span>' +
+      '<span style="font-weight:800;font-size:19px;color:' + (totalDue>0?'var(--red)':'var(--green)') + '">' + money(totalDue) + '</span>' +
+    '</div>' +
+  '</div>';
+
+  // Actions
+  h += '<div class="btn-row" style="margin-bottom:14px">' +
+    '<button class="btn btn-primary" data-action="open-payment" data-id="' + t.id + '">' + icon('card',17) + ' Record</button>' +
+    '<button class="btn btn-ghost" data-action="open-reminder" data-id="' + t.id + '">' + icon('send',17) + ' Remind</button>' +
+    '<button class="btn btn-ghost" data-action="go" data-screen="tenant-edit" data-id="' + t.id + '">' + icon('edit',17) + ' Edit</button>' +
+  '</div>';
+
+  // Payment history
+  h += '<div class="card flush">' +
+    '<div style="padding:16px" class="section-head"><h3 class="section-title">Payment History</h3></div>' +
+    '<div class="table-head" style="padding-left:16px;padding-right:16px">' +
+      '<span style="flex:1.2">Month</span><span style="flex:1;text-align:right">Rent</span>' +
+      '<span style="flex:1;text-align:right">Electricity</span><span style="flex:.9;text-align:right">Status</span>' +
+    '</div>' +
+    '<div class="list">';
+  months.forEach(function(mm){
+    const rp = rentPaidFor(t.id, mm);
+    const ep = elecPaidFor(t.id, mm);
+    const sh = elecShareFor(t, mm);
+    const st = calculateTenantStatus(rp + ep, t.monthlyRent + sh);
+    h += '<div class="row" style="padding-left:16px;padding-right:16px">' +
+      '<span style="flex:1.2;font-weight:600;font-size:13.5px">' + monthLabel(mm) + '</span>' +
+      '<span style="flex:1;text-align:right;font-weight:700;font-size:13.5px;color:' + (rp>=t.monthlyRent?'var(--green)':'var(--red)') + '">' + money(rp) + '</span>' +
+      '<span style="flex:1;text-align:right;font-weight:700;font-size:13.5px;color:' + (ep>=sh?'var(--green)':'var(--amber)') + '">' + money(ep) + '</span>' +
+      '<span style="flex:.9;text-align:right">' + statusPill(st) + '</span>' +
+    '</div>';
+  });
+  h += '</div></div>';
+
+  // Complaints by this tenant
+  const tComplaints = DB.complaints.filter(function(c){ return c.tenantId === t.id; });
+  h += '<div class="card flush">' +
+    '<div style="padding:16px" class="section-head"><h3 class="section-title">Complaints</h3>' +
+    '<button class="link" data-action="go" data-screen="complaint-add">' + icon('plus',14) + ' Add</button></div>';
+  if(!tComplaints.length){
+    h += '<div class="empty" style="padding:28px"><p>No complaints raised.</p></div>';
+  } else {
+    h += '<div class="list">';
+    tComplaints.forEach(function(c){
+      h += '<button class="row" data-action="go" data-screen="complaint-details" data-id="' + c.id + '">' +
+        '<div class="stat-icon bg-red" style="width:38px;height:38px;margin:0">' + icon(c.icon||'wrench',17) + '</div>' +
+        '<div class="row-main"><div class="row-title">' + esc(c.title) + '</div>' +
+        '<div class="row-sub">Room ' + esc(room ? room.roomNumber : '-') + ' &bull; ' + dateLabel(c.createdAt.substring(0,10)) + '</div></div>' +
+        '<div class="row-right">' + statusPill(c.status) + '</div>' +
+        '<span style="color:#B7C2D8">' + icon('chevRight',18) + '</span>' +
+      '</button>';
+    });
+    h += '</div>';
+  }
+  h += '</div>';
+
+  return h;
+}
+
+/* ----------------------------------------------------------------
+   17. ROOMS
+   ---------------------------------------------------------------- */
+function renderRooms(){
+  const m = UI.month;
+  const rooms = DB.rooms.slice().sort(function(a,b){ return parseInt(a.roomNumber,10)-parseInt(b.roomNumber,10); });
+  const totalTenants = DB.tenants.length;
+
+  let list = rooms.filter(function(r){
+    if(!UI.roomSearch) return true;
+    return r.roomNumber.indexOf(UI.roomSearch.toLowerCase()) >= 0;
+  });
+  if(UI.roomFilter === 'occupied') list = list.filter(function(r){ return roomOccupants(r.id).length > 0; });
+  if(UI.roomFilter === 'available') list = list.filter(function(r){ return roomOccupants(r.id).length < r.capacity; });
+
+  const occupiedCount = rooms.filter(function(r){ return roomOccupants(r.id).length > 0; }).length;
+  const availableCount = rooms.length - occupiedCount;
+
+  let h = '';
+  h += '<div class="page-head">' +
+    '<div><h1 class="page-title">Rooms <span class="count-badge">' + rooms.length + '</span></h1>' +
+    '<p class="page-sub">' + rooms.length + ' rooms &bull; ' + totalTenants + ' tenants</p></div>' +
+    '<button class="btn btn-primary btn-sm" data-action="go" data-screen="room-add">' + icon('plus',16) + ' Add Room</button>' +
+  '</div>';
+
+  h += '<div class="search">' + icon('search',18) +
+    '<input type="search" placeholder="Search room number..." value="' + esc(UI.roomSearch) + '" data-search="roomSearch" aria-label="Search rooms">' +
+  '</div>';
+
+  h += '<div class="chip-row">' +
+    '<button class="chip' + (UI.roomFilter==='all'?' active':'') + '" data-action="filter" data-group="roomFilter" data-value="all">All (' + rooms.length + ')</button>' +
+    '<button class="chip' + (UI.roomFilter==='occupied'?' active':'') + '" data-action="filter" data-group="roomFilter" data-value="occupied">Occupied (' + occupiedCount + ')</button>' +
+    '<button class="chip' + (UI.roomFilter==='available'?' active':'') + '" data-action="filter" data-group="roomFilter" data-value="available">Available (' + availableCount + ')</button>' +
+    '<button class="chip" data-action="noop">' + icon('filter',15) + '</button>' +
+  '</div>';
+
+  if(!list.length){
+    h += '<div class="card"><div class="empty"><div class="ic-wrap">' + icon('bed',26) + '</div>' +
+      '<h4>No rooms found.</h4><p>Try a different room number or filter.</p></div></div>';
+    return h;
+  }
+
+  h += '<div class="card flush"><div class="list">';
+  list.forEach(function(r){
+    const occ = roomOccupants(r.id);
+    const fin = calculateRoomFinancials(r.id, m);
+    const outstanding = r2(fin.rentOutstanding + fin.elecOutstanding);
+    let dots = '';
+    for(let i=0;i<r.capacity;i++){
+      dots += '<span class="dot' + (i < occ.length ? ' on' : '') + '"></span>';
     }
-  </script>
+    let chips = '';
+    occ.slice(0,3).forEach(function(t){
+      const tone = toneFor(t.name);
+      chips += '<span class="occ-chip"><span class="avatar sm" style="width:20px;height:20px;min-width:20px;font-size:9px;background:' + tone[0] + ';color:' + tone[1] + '">' + initials(t.name) + '</span>' + esc(t.name.split(' ')[0]) + '</span>';
+    });
+    if(occ.length === 0) chips = '<span style="font-size:12px;color:var(--muted)">No occupants</span>';
+
+    h += '<button class="row" data-action="go" data-screen="room-details" data-id="' + r.id + '" style="align-items:flex-start">' +
+      '<div class="stat-icon bg-blue" style="width:44px;height:44px;margin-top:2px">' + icon('bed',20) + '</div>' +
+      '<div class="row-main">' +
+        '<div class="row-title">Room ' + esc(r.roomNumber) + '</div>' +
+        '<div class="row-sub">' + occ.length + ' / ' + r.capacity + ' occupied</div>' +
+        '<div class="occ-dots">' + dots + '</div>' +
+        '<div class="occ-people">' + chips + '</div>' +
+      '</div>' +
+      '<div class="row-right" style="min-width:96px">' +
+        '<div style="font-size:11px;color:var(--muted);font-weight:600">Monthly Rent</div>' +
+        '<div class="amount">' + money(r.monthlyRent) + '</div>' +
+        '<div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:4px">Outstanding</div>' +
+        '<div class="amount ' + (outstanding > 0 ? 'due' : 'paid') + '">' + money(outstanding) + '</div>' +
+      '</div>' +
+      '<span style="color:#B7C2D8;margin-top:6px">' + icon('chevRight',18) + '</span>' +
+    '</button>';
+  });
+  h += '</div></div>';
+  return h;
+}
+
+/* ----------------------------------------------------------------
+   18. ADD / EDIT ROOM
+   ---------------------------------------------------------------- */
+function renderRoomForm(mode){
+  const editing = mode === 'edit';
+  const r = editing ? getRoom(UI.params.id) : null;
+  if(editing && !r) return '<div class="card"><div class="empty"><h4>Room not found.</h4></div></div>';
+
+  let h = '';
+  h += '<h1 class="page-title">' + (editing ? 'Edit Room' : 'Add Room') + '</h1>';
+  h += '<p class="page-sub" style="margin-bottom:18px">' + (editing ? 'Update room details' : 'Create a new room in your hostel') + '</p>';
+
+  h += '<form id="room-form" novalidate data-mode="' + mode + '" data-id="' + (r ? r.id : '') + '">';
+
+  h += '<div class="field"><label for="rf-number">Room Number <span class="req">*</span></label>' +
+    '<div class="input-wrap">' + icon('bed',18) +
+    '<input id="rf-number" name="roomNumber" type="text" inputmode="numeric" placeholder="e.g. 209" value="' + esc(r ? r.roomNumber : '') + '">' +
+    '</div></div>';
+
+  h += '<div class="field"><label for="rf-capacity">Maximum Occupancy <span class="req">*</span></label>' +
+    '<div class="input-wrap select-wrap">' + icon('users',18) +
+    '<select id="rf-capacity" name="capacity">' +
+      [1,2,3].map(function(n){ return '<option value="' + n + '"' + ((r ? r.capacity : 3) === n ? ' selected' : '') + '>' + n + ' tenant' + (n>1?'s':'') + '</option>'; }).join('') +
+    '</select><span class="chev">' + icon('chevDown',18) + '</span></div>' +
+    '<div class="hint">Shared hostel rooms support a maximum of 3 tenants.</div></div>';
+
+  h += '<div class="field"><label for="rf-room-rent">Monthly Room Rent <span class="req">*</span></label>' +
+    '<div class="input-wrap">' + icon('rupee',18) +
+    '<input id="rf-room-rent" name="monthlyRent" type="number" min="0" step="100" value="' + (r ? r.monthlyRent : DB.hostel.defaultRoomRent) + '">' +
+    '</div><div class="hint">Default room rent is ' + money(DB.hostel.defaultRoomRent) + '.</div></div>';
+
+  h += '<div class="field"><label for="rf-tenant-rent">Monthly Rent Per Tenant <span class="req">*</span></label>' +
+    '<div class="input-wrap">' + icon('rupee',18) +
+    '<input id="rf-tenant-rent" name="tenantRent" type="number" min="0" step="50" value="' + (r ? Math.round(r.monthlyRent/3) : DB.hostel.defaultTenantRent) + '">' +
+    '</div><div class="hint">Each tenant pays ' + money(DB.hostel.defaultTenantRent) + ' by default.</div></div>';
+
+  h += '<div class="field"><label for="rf-type">Room Type <span class="req">*</span></label>' +
+    '<div class="input-wrap select-wrap">' + icon('building',18) +
+    '<select id="rf-type" name="type">' +
+      '<option value="shared"' + ((r ? r.type : 'shared') === 'shared' ? ' selected' : '') + '>Shared</option>' +
+      '<option value="single"' + ((r && r.type === 'single') ? ' selected' : '') + '>Single</option>' +
+    '</select><span class="chev">' + icon('chevDown',18) + '</span></div></div>';
+
+  h += '<div class="err" id="room-form-err" style="display:none;margin-bottom:12px"></div>';
+
+  h += '<button class="btn btn-primary btn-block" type="submit">' + icon('check',18) +
+       (editing ? ' Save Changes' : ' Save Room') + '</button>';
+
+  if(editing){
+    h += '<button class="btn btn-danger-soft btn-block" type="button" style="margin-top:10px" data-action="delete-room" data-id="' + r.id + '">' +
+         icon('trash',17) + ' Delete Room</button>';
+  }
+
+  h += '</form>';
+  return h;
+}
+
+/* ----------------------------------------------------------------
+   19. ROOM DETAILS
+   ---------------------------------------------------------------- */
+function renderRoomDetails(){
+  const r = getRoom(UI.params.id);
+  if(!r) return '<div class="card"><div class="empty"><h4>Room not found.</h4></div></div>';
+  const m = UI.month;
+  const occ = roomOccupants(r.id);
+  const fin = calculateRoomFinancials(r.id, m);
+
+  let h = '';
+  h += '<div class="card">' +
+    '<div style="display:flex;gap:14px;align-items:center">' +
+      '<div class="avatar lg" style="background:var(--blue-50);color:var(--blue);border-radius:22px">' + icon('bed',34) + '</div>' +
+      '<div style="flex:1">' +
+        '<div style="font-size:23px;font-weight:800;letter-spacing:-.5px">Room ' + esc(r.roomNumber) + '</div>' +
+        '<div class="row-sub" style="margin-top:4px">' + occ.length + ' / ' + r.capacity + ' occupied</div>' +
+        '<div class="row-sub">' + (r.type === 'shared' ? 'Shared room' : 'Single room') + ' &bull; ' + occ.length + ' tenant' + (occ.length===1?'':'s') + '</div>' +
+        '<div class="occ-dots">' + Array.from({length:r.capacity}).map(function(_,i){
+          return '<span class="dot' + (i < occ.length ? ' on' : '') + '"></span>';
+        }).join('') + '</div>' +
+      '</div>' +
+      '<button class="btn btn-soft btn-sm" data-action="go" data-screen="room-edit" data-id="' + r.id + '">' + icon('edit',15) + ' Edit</button>' +
+    '</div>' +
+  '</div>';
+
+  // Financial cards
+  h += '<div class="grid2 tight">' +
+    '<div class="stat tint-red" style="box-shadow:none">' +
+      '<div class="stat-icon bg-red">' + icon('home',17) + '</div>' +
+      '<div class="stat-label">Total Monthly Rent</div>' +
+      '<div class="stat-value" style="color:var(--red)">' + money(r.monthlyRent) + '</div>' +
+      '<div class="stat-foot">' + money(DB.hostel.defaultTenantRent) + ' per tenant</div>' +
+    '</div>' +
+    '<div class="stat tint-amber" style="box-shadow:none">' +
+      '<div class="stat-icon bg-amber">' + icon('zap',17) + '</div>' +
+      '<div class="stat-label">Electricity (' + monthLabelShort(m) + ')</div>' +
+      '<div class="stat-value" style="color:var(--amber)">' + money(fin.elecShare) + '</div>' +
+      '<div class="stat-foot">per tenant &bull; bill ' + money(fin.elecBill) + '</div>' +
+    '</div>' +
+  '</div>';
+
+  h += '<div class="btn-row" style="margin-bottom:14px">' +
+    '<button class="btn btn-ghost btn-sm" data-action="open-elec-bill" data-id="' + r.id + '">' + icon('zap',16) + ' Update Electricity Bill</button>' +
+    '<button class="btn btn-soft btn-sm" data-action="go" data-screen="tenant-add" data-id="' + r.id + '" data-patch=\'{"roomId":"' + r.id + '"}\'>' + icon('plus',16) + ' Add Tenant</button>' +
+  '</div>';
+
+  // Occupants
+  h += '<div class="card flush">' +
+    '<div style="padding:16px" class="section-head"><h3 class="section-title">Occupants (' + occ.length + ')</h3></div>';
+  if(!occ.length){
+    h += '<div class="empty" style="padding:30px"><div class="ic-wrap">' + icon('users',24) + '</div>' +
+      '<h4>No tenants in this room</h4><p>Add a tenant to start tracking rent and electricity.</p></div>';
+  } else {
+    h += '<div class="table-head" style="padding-left:16px;padding-right:16px">' +
+      '<span style="flex:1.5">Tenant</span><span style="flex:1;text-align:right">Rent</span>' +
+      '<span style="flex:1;text-align:right">Electricity</span><span style="flex:.4"></span></div>';
+    h += '<div class="list">';
+    occ.forEach(function(t){
+      const rs = tenantRentStatus(t, m);
+      const es = tenantElecStatus(t, m);
+      const share = elecShareFor(t, m);
+      h += '<button class="row" data-action="go" data-screen="tenant-details" data-id="' + t.id + '" style="padding-left:16px;padding-right:16px">' +
+        avatar(t.name,'sm') +
+        '<div class="row-main">' +
+          '<div class="row-title truncate">' + esc(t.name) + '</div>' +
+          '<div class="row-sub">' + esc(t.phone) + '</div>' +
+        '</div>' +
+        '<div style="text-align:right;min-width:66px">' +
+          '<div style="font-weight:700;font-size:13.5px">' + money(t.monthlyRent) + '</div>' +
+          statusPill(rs) +
+        '</div>' +
+        '<div style="text-align:right;min-width:66px">' +
+          '<div style="font-weight:700;font-size:13.5px;color:var(--amber)">' + money(share) + '</div>' +
+          statusPill(es) +
+        '</div>' +
+        '<span style="color:#B7C2D8">' + icon('chevRight',17) + '</span>' +
+      '</button>';
+    });
+    h += '</div>';
+  }
+  h += '</div>';
+
+  // Room financial summary
+  h += '<div class="card">' +
+    '<div class="section-head"><h3 class="section-title">Room Financial Summary</h3>' +
+    '<span class="row-sub">' + monthLabel(m) + '</span></div>' +
+    '<div class="grid2 tight">' +
+      '<div class="stat tint-blue" style="box-shadow:none">' +
+        '<div class="stat-icon bg-blue">' + icon('home',17) + '</div>' +
+        '<div class="stat-label">Total Rent</div>' +
+        '<div class="stat-value" style="color:var(--blue)">' + money(fin.totalRent) + '</div>' +
+        '<div class="stat-foot">' + occ.length + ' tenant' + (occ.length===1?'':'s') + ' &times; ' + money(DB.hostel.defaultTenantRent) + '</div>' +
+      '</div>' +
+      '<div class="stat tint-green" style="box-shadow:none">' +
+        '<div class="stat-icon bg-green">' + icon('checkCircle',17) + '</div>' +
+        '<div class="stat-label">Rent Collected</div>' +
+        '<div class="stat-value" style="color:var(--green)">' + money(fin.rentCollected) + '</div>' +
+        '<div class="stat-foot">' + (fin.totalRent ? Math.round(fin.rentCollected/fin.totalRent*100) : 0) + '% collected</div>' +
+      '</div>' +
+      '<div class="stat tint-red" style="box-shadow:none">' +
+        '<div class="stat-icon bg-red">' + icon('clock',17) + '</div>' +
+        '<div class="stat-label">Rent Outstanding</div>' +
+        '<div class="stat-value" style="color:var(--red)">' + money(fin.rentOutstanding) + '</div>' +
+        '<div class="stat-foot">Pending from tenants</div>' +
+      '</div>' +
+      '<div class="stat tint-amber" style="box-shadow:none">' +
+        '<div class="stat-icon bg-amber">' + icon('zap',17) + '</div>' +
+        '<div class="stat-label">Electricity Bill</div>' +
+        '<div class="stat-value" style="color:var(--amber)">' + money(fin.elecBill) + '</div>' +
+        '<div class="stat-foot">' + (occ.length ? money(fin.elecShare) + ' &times; ' + occ.length + ' occupants' : 'No occupants') + '</div>' +
+      '</div>' +
+      '<div class="stat tint-green" style="box-shadow:none">' +
+        '<div class="stat-icon bg-green">' + icon('wallet',17) + '</div>' +
+        '<div class="stat-label">Electricity Collected</div>' +
+        '<div class="stat-value" style="color:var(--green)">' + money(fin.elecCollected) + '</div>' +
+      '</div>' +
+      '<div class="stat tint-red" style="box-shadow:none">' +
+        '<div class="stat-icon bg-red">' + icon('clock',17) + '</div>' +
+        '<div class="stat-label">Electricity Outstanding</div>' +
+        '<div class="stat-value" style="color:var(--red)">' + money(fin.elecOutstanding) + '</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  return h;
+}
+
+/* ----------------------------------------------------------------
+   20. RENT MANAGEMENT
+   ---------------------------------------------------------------- */
+function renderRent(){
+  const m = UI.month;
+  const T = calculateDashboardTotals(m);
+
+  let rows = DB.tenants.slice().sort(function(a,b){
+    const ra = getRoom(a.roomId), rb = getRoom(b.roomId);
+    return (parseInt(ra?ra.roomNumber:0,10) - parseInt(rb?rb.roomNumber:0,10)) || a.name.localeCompare(b.name);
+  });
+
+  rows = rows.filter(function(t){
+    if(!UI.rentSearch) return true;
+    const q = UI.rentSearch.toLowerCase();
+    const room = getRoom(t.roomId);
+    return t.name.toLowerCase().indexOf(q) >= 0 || (room && room.roomNumber.indexOf(q) >= 0);
+  });
+
+  const allRows = DB.tenants;
+  const paidCount = allRows.filter(function(t){ return tenantRentStatus(t,m) === 'paid'; }).length;
+  const unpaidCount = allRows.filter(function(t){ return tenantRentStatus(t,m) === 'unpaid'; }).length;
+  const partialCount = allRows.filter(function(t){ return tenantRentStatus(t,m) === 'partial'; }).length;
+
+  if(UI.rentFilter !== 'all'){
+    rows = rows.filter(function(t){ return tenantRentStatus(t, m) === UI.rentFilter; });
+  }
+
+  let h = '';
+  h += '<div class="page-head"><div>' +
+    '<h1 class="page-title">Rent Management</h1>' +
+    '<p class="page-sub">Track monthly rent collection from tenants</p>' +
+  '</div></div>';
+
+  h += monthSelector();
+
+  h += '<div class="grid2">' +
+    '<div class="stat tint-green" style="box-shadow:none">' +
+      '<div class="stat-icon bg-green">' + icon('wallet',17) + '</div>' +
+      '<div class="stat-label">Collected</div>' +
+      '<div class="stat-value" style="color:var(--green)">' + money(T.rentCollected) + '</div>' +
+      '<div class="stat-foot">' + paidCount + ' of ' + allRows.length + ' tenants</div>' +
+    '</div>' +
+    '<div class="stat tint-red" style="box-shadow:none">' +
+      '<div class="stat-icon bg-red">' + icon('clock',17) + '</div>' +
+      '<div class="stat-label">Outstanding</div>' +
+      '<div class="stat-value" style="color:var(--red)">' + money(T.rentDue) + '</div>' +
+      '<div class="stat-foot">' + T.rentDueTenants + ' tenants pending</div>' +
+    '</div>' +
+  '</div>';
+
+  h += '<div class="stat tint-blue" style="box-shadow:none;margin-bottom:14px;flex-direction:row;align-items:center;gap:12px">' +
+      '<div class="stat-icon bg-blue" style="margin:0">' + icon('users',17) + '</div>' +
+      '<div style="flex:1"><div class="stat-label">Total Expected Rent</div>' +
+      '<div class="stat-value" style="font-size:19px">' + money(T.expectedRent) + '</div></div>' +
+      '<div style="text-align:right"><div class="stat-label">Tenants</div>' +
+      '<div style="font-weight:800;font-size:19px">' + T.totalTenants + '</div></div>' +
+    '</div>';
+
+  h += '<div class="chip-row">' +
+    '<button class="chip' + (UI.rentFilter==='all'?' active':'') + '" data-action="filter" data-group="rentFilter" data-value="all">All (' + allRows.length + ')</button>' +
+    '<button class="chip' + (UI.rentFilter==='paid'?' active':'') + '" data-action="filter" data-group="rentFilter" data-value="paid">Paid (' + paidCount + ')</button>' +
+    '<button class="chip' + (UI.rentFilter==='unpaid'?' active':'') + '" data-action="filter" data-group="rentFilter" data-value="unpaid">Unpaid (' + unpaidCount + ')</button>' +
+    '<button class="chip' + (UI.rentFilter==='partial'?' active':'') + '" data-action="filter" data-group="rentFilter" data-value="partial">Partial (' + partialCount + ')</button>' +
+  '</div>';
+
+  h += '<div class="btn-row" style="margin-bottom:12px">' +
+    '<button class="btn btn-primary btn-sm" data-action="open-bulk-reminder">' + icon('mail',16) + ' Bulk Reminder</button>' +
+  '</div>';
+
+  h += '<div class="search">' + icon('search',18) +
+    '<input type="search" placeholder="Search tenant or room number..." value="' + esc(UI.rentSearch) + '" data-search="rentSearch" aria-label="Search rent records">' +
+  '</div>';
+
+  if(!rows.length){
+    h += '<div class="card"><div class="empty"><div class="ic-wrap">' + icon('wallet',26) + '</div>' +
+      '<h4>' + (T.rentDue <= 0 ? 'No outstanding payments' : 'No records found') + '</h4>' +
+      '<p>All tenants are paid for ' + monthLabel(m) + '.</p></div></div>';
+    return h;
+  }
+
+  h += '<div class="card flush"><div class="list">';
+  rows.forEach(function(t){
+    const room = getRoom(t.roomId);
+    const paid = rentPaidFor(t.id, m);
+    const due = calculateRentDue(t, m);
+    const st = tenantRentStatus(t, m);
+    h += '<button class="row" data-action="go" data-screen="tenant-details" data-id="' + t.id + '" style="align-items:flex-start">' +
+      avatar(t.name,'sm') +
+      '<div class="row-main">' +
+        '<div class="row-title truncate">' + esc(t.name) + '</div>' +
+        '<div class="row-sub">' + esc(t.phone) + '</div>' +
+      '</div>' +
+      '<div style="text-align:center;min-width:44px">' +
+        '<div style="font-size:11px;color:var(--muted);font-weight:600">Room</div>' +
+        '<div style="font-weight:700;font-size:13.5px">' + esc(room ? room.roomNumber : '-') + '</div>' +
+      '</div>' +
+      '<div style="text-align:right;min-width:64px">' +
+        '<div style="font-weight:700;font-size:13.5px">' + money(t.monthlyRent) + '</div>' +
+        '<div style="font-size:11px;color:var(--muted)">/month</div>' +
+      '</div>' +
+      '<div style="text-align:right;min-width:58px">' +
+        '<div style="font-weight:700;font-size:13.5px;color:' + (paid>0?'var(--green)':'var(--muted)') + '">' + (paid>0?money(paid):'-') + '</div>' +
+        '<div style="font-size:11px;color:var(--muted)">paid</div>' +
+      '</div>' +
+      '<div style="text-align:right;min-width:58px">' +
+        '<div style="font-weight:700;font-size:13.5px;color:' + (due>0?'var(--red)':'var(--green)') + '">' + money(due) + '</div>' +
+        '<div style="font-size:11px;color:var(--muted)">due</div>' +
+      '</div>' +
+      '<div class="row-right" style="min-width:70px">' + statusPill(st) + '</div>' +
+      '<span style="color:#B7C2D8">' + icon('chevRight',16) + '</span>' +
+    '</button>';
+  });
+  h += '</div></div>';
+  return h;
+}
+
+/* ----------------------------------------------------------------
+   21. ELECTRICITY MANAGEMENT
+   ---------------------------------------------------------------- */
+function renderElectricity(){
+  const m = UI.month;
+  const T = calculateDashboardTotals(m);
+
+  let rows = DB.tenants.slice().sort(function(a,b){
+    const ra = getRoom(a.roomId), rb = getRoom(b.roomId);
+    return (parseInt(ra?ra.roomNumber:0,10) - parseInt(rb?rb.roomNumber:0,10)) || a.name.localeCompare(b.name);
+  });
+
+  rows = rows.filter(function(t){
+    if(!UI.elecSearch) return true;
+    const q = UI.elecSearch.toLowerCase();
+    const room = getRoom(t.roomId);
+    return t.name.toLowerCase().indexOf(q) >= 0 || (room && room.roomNumber.indexOf(q) >= 0);
+  });
+
+  const allRows = DB.tenants;
+  const paidCount = allRows.filter(function(t){ return tenantElecStatus(t,m) === 'paid'; }).length;
+  const unpaidCount = allRows.filter(function(t){ return tenantElecStatus(t,m) === 'unpaid'; }).length;
+  const partialCount = allRows.filter(function(t){ return tenantElecStatus(t,m) === 'partial'; }).length;
+
+  if(UI.elecFilter !== 'all'){
+    rows = rows.filter(function(t){ return tenantElecStatus(t, m) === UI.elecFilter; });
+  }
+
+  let h = '';
+  h += '<div class="page-head"><div>' +
+    '<h1 class="page-title">Electricity Management</h1>' +
+    '<p class="page-sub">Track room electricity bills and tenant payments</p>' +
+  '</div></div>';
+
+  h += monthSelector();
+
+  h += '<div class="grid2">' +
+    '<div class="stat tint-amber" style="box-shadow:none">' +
+      '<div class="stat-icon bg-amber">' + icon('zap',17) + '</div>' +
+      '<div class="stat-label">Total Electricity Bill</div>' +
+      '<div class="stat-value" style="color:var(--amber)">' + money(T.elecBill) + '</div>' +
+      '<div class="stat-foot">' + monthLabel(m) + '</div>' +
+    '</div>' +
+    '<div class="stat tint-green" style="box-shadow:none">' +
+      '<div class="stat-icon bg-green">' + icon('wallet',17) + '</div>' +
+      '<div class="stat-label">Collected</div>' +
+      '<div class="stat-value" style="color:var(--green)">' + money(T.elecCollected) + '</div>' +
+      '<div class="stat-foot">Paid by tenants</div>' +
+    '</div>' +
+  '</div>';
+
+  h += '<div class="stat tint-red" style="box-shadow:none;margin-bottom:14px">' +
+      '<div class="stat-icon bg-red">' + icon('clock',17) + '</div>' +
+      '<div class="stat-label">Outstanding</div>' +
+      '<div class="stat-value" style="color:var(--red)">' + money(T.elecDue) + '</div>' +
+      '<div class="stat-foot">' + T.elecDueTenants + ' tenants pending</div>' +
+    '</div>';
+
+  h += '<div class="chip-row">' +
+    '<button class="chip' + (UI.elecFilter==='all'?' active':'') + '" data-action="filter" data-group="elecFilter" data-value="all">All (' + allRows.length + ')</button>' +
+    '<button class="chip' + (UI.elecFilter==='paid'?' active':'') + '" data-action="filter" data-group="elecFilter" data-value="paid">Paid (' + paidCount + ')</button>' +
+    '<button class="chip' + (UI.elecFilter==='unpaid'?' active':'') + '" data-action="filter" data-group="elecFilter" data-value="unpaid">Unpaid (' + unpaidCount + ')</button>' +
+    '<button class="chip' + (UI.elecFilter==='partial'?' active':'') + '" data-action="filter" data-group="elecFilter" data-value="partial">Partial (' + partialCount + ')</button>' +
+  '</div>';
+
+  h += '<div class="btn-row" style="margin-bottom:12px">' +
+    '<button class="btn btn-primary btn-sm" data-action="open-bulk-reminder" data-type="electricity">' + icon('mail',16) + ' Bulk Reminder</button>' +
+  '</div>';
+
+  h += '<div class="search">' + icon('search',18) +
+    '<input type="search" placeholder="Search tenant or room number..." value="' + esc(UI.elecSearch) + '" data-search="elecSearch" aria-label="Search electricity records">' +
+  '</div>';
+
+  if(!rows.length){
+    h += '<div class="card"><div class="empty"><div class="ic-wrap">' + icon('zap',26) + '</div>' +
+      '<h4>No electricity records</h4><p>Record a room electricity bill to get started.</p></div></div>';
+    return h;
+  }
+
+  h += '<div class="card flush"><div class="list">';
+  rows.forEach(function(t){
+    const room = getRoom(t.roomId);
+    const share = elecShareFor(t, m);
+    const paid = elecPaidFor(t.id, m);
+    const due = calculateElectricityDue(t, m);
+    const st = tenantElecStatus(t, m);
+    h += '<button class="row" data-action="go" data-screen="electricity-details" data-id="' + t.id + '" style="align-items:flex-start">' +
+      avatar(t.name,'sm') +
+      '<div class="row-main">' +
+        '<div class="row-title truncate">' + esc(t.name) + '</div>' +
+        '<div class="row-sub">' + esc(t.phone) + '</div>' +
+      '</div>' +
+      '<div style="text-align:center;min-width:44px">' +
+        '<div style="font-size:11px;color:var(--muted);font-weight:600">Room</div>' +
+        '<div style="font-weight:700;font-size:13.5px">' + esc(room ? room.roomNumber : '-') + '</div>' +
+      '</div>' +
+      '<div style="text-align:right;min-width:62px">' +
+        '<div style="font-weight:700;font-size:13.5px;color:var(--amber)">' + money(share) + '</div>' +
+        '<div style="font-size:11px;color:var(--muted)">share</div>' +
+      '</div>' +
+      '<div style="text-align:right;min-width:56px">' +
+        '<div style="font-weight:700;font-size:13.5px;color:' + (paid>0?'var(--green)':'var(--muted)') + '">' + (paid>0?money(paid):'-') + '</div>' +
+        '<div style="font-size:11px;color:var(--muted)">paid</div>' +
+      '</div>' +
+      '<div style="text-align:right;min-width:56px">' +
+        '<div style="font-weight:700;font-size:13.5px;color:' + (due>0?'var(--red)':'var(--green)') + '">' + money(due) + '</div>' +
+        '<div style="font-size:11px;color:var(--muted)">due</div>' +
+      '</div>' +
+      '<div class="row-right" style="min-width:68px">' + statusPill(st) + '</div>' +
+      '<span style="color:#B7C2D8">' + icon('chevRight',16) + '</span>' +
+    '</button>';
+  });
+  h += '</div></div>';
+  return h;
+}
+
+/* ----------------------------------------------------------------
+   22. ELECTRICITY DETAILS (per tenant)
+   ---------------------------------------------------------------- */
+function renderElectricityDetails(){
+  const t = getTenant(UI.params.id);
+  if(!t) return '<div class="card"><div class="empty"><h4>Tenant not found.</h4></div></div>';
+  const m = UI.month;
+  const room = getRoom(t.roomId);
+  const bill = elecBillFor(t.roomId, m);
+  const occ = roomOccupants(t.roomId).length;
+  const share = elecShareFor(t, m);
+  const paid = elecPaidFor(t.id, m);
+  const due = calculateElectricityDue(t, m);
+  const st = tenantElecStatus(t, m);
+
+  const pays = DB.payments
+    .filter(function(p){ return p.tenantId===t.id && p.type==='electricity' && p.month===m; })
+    .sort(function(a,b){ return b.date.localeCompare(a.date); });
+
+  let h = '';
+  h += '<div class="card tint-amber">' +
+    '<div style="display:flex;gap:12px;align-items:center">' +
+      '<div class="stat-icon bg-amber" style="width:46px;height:46px;margin:0">' + icon('zap',22) + '</div>' +
+      '<div style="flex:1">' +
+        '<div class="stat-label">' + monthLabel(m) + '</div>' +
+        '<div style="font-size:22px;font-weight:800;letter-spacing:-.5px">Electricity</div>' +
+        '<div class="row-sub">Electricity charges for this month</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  h += '<div class="card">' +
+    '<div style="display:flex;gap:12px;align-items:center">' +
+      avatar(t.name) +
+      '<div style="flex:1">' +
+        '<div style="font-weight:800;font-size:16px">' + esc(t.name) + '</div>' +
+        '<div class="row-sub">' + esc(t.phone) + '</div>' +
+        '<div class="row-sub" style="color:var(--blue);font-weight:600">' + icon('bed',13) + ' Room ' + esc(room ? room.roomNumber : '-') + '</div>' +
+      '</div>' +
+      '<button class="btn btn-soft btn-sm" data-action="go" data-screen="tenant-details" data-id="' + t.id + '">View Tenant</button>' +
+    '</div>' +
+  '</div>';
+
+  h += '<div class="grid2 tight">' +
+    '<div class="stat tint-blue" style="box-shadow:none">' +
+      '<div class="stat-icon bg-blue">' + icon('zap',17) + '</div>' +
+      '<div class="stat-label">Electricity Amount</div>' +
+      '<div class="stat-value" style="color:var(--blue)">' + money(share) + '</div>' +
+    '</div>' +
+    '<div class="stat tint-green" style="box-shadow:none">' +
+      '<div class="stat-icon bg-green">' + icon('wallet',17) + '</div>' +
+      '<div class="stat-label">Paid</div>' +
+      '<div class="stat-value" style="color:var(--green)">' + money(paid) + '</div>' +
+    '</div>' +
+    '<div class="stat tint-red" style="box-shadow:none;grid-column:1/-1">' +
+      '<div class="stat-icon bg-red">' + icon('clock',17) + '</div>' +
+      '<div class="stat-label">Outstanding</div>' +
+      '<div class="stat-value" style="color:var(--red)">' + money(due) + '</div>' +
+    '</div>' +
+  '</div>';
+
+  if(due > 0){
+    h += '<div class="card tint-amber" style="display:flex;gap:12px;align-items:flex-start">' +
+      '<div class="stat-icon bg-amber" style="width:36px;height:36px;margin:0">' + icon('alert',17) + '</div>' +
+      '<div><div style="font-weight:700;font-size:14px">' + (paid>0?'Partial Payment':'Payment Pending') + '</div>' +
+      '<div style="font-size:13px;color:var(--muted);margin-top:2px">' + money(due) + ' is still pending for ' + monthLabel(m) + '.</div></div>' +
+    '</div>';
+  } else if(share > 0){
+    h += '<div class="card tint-green" style="display:flex;gap:12px;align-items:center">' +
+      '<div class="stat-icon bg-green" style="width:36px;height:36px;margin:0">' + icon('checkCircle',17) + '</div>' +
+      '<div style="font-weight:700;font-size:14px">Electricity fully paid for ' + monthLabel(m) + '</div>' +
+    '</div>';
+  }
+
+  h += '<div class="btn-row" style="margin-bottom:14px">' +
+    '<button class="btn btn-primary" data-action="open-payment" data-id="' + t.id + '" data-type="electricity">' + icon('plus',17) + ' Record Payment</button>' +
+    '<button class="btn btn-ghost" data-action="open-reminder" data-id="' + t.id + '" data-type="electricity">' + icon('send',17) + ' Send Reminder</button>' +
+  '</div>';
+
+  // Payment history
+  h += '<div class="card flush">' +
+    '<div style="padding:16px" class="section-head">' +
+      '<div><h3 class="section-title">Payment History</h3>' +
+      '<div class="row-sub">All electricity payments for ' + monthLabel(m) + '</div></div>' +
+      '<span class="pill pill-info">' + pays.length + ' payment' + (pays.length===1?'':'s') + '</span>' +
+    '</div>';
+  if(!pays.length){
+    h += '<div class="empty" style="padding:30px"><p>No electricity payments recorded.</p></div>';
+  } else {
+    h += '<div class="list">';
+    pays.forEach(function(p){
+      h += '<div class="row">' +
+        '<div class="stat-icon bg-blue" style="width:36px;height:36px;margin:0">' + icon('calendar',16) + '</div>' +
+        '<div class="row-main">' +
+          '<div class="row-title">' + dateLabel(p.date) + '</div>' +
+          '<div class="row-sub">' + esc(p.mode) + (p.note ? ' &bull; ' + esc(p.note) : '') + '</div>' +
+        '</div>' +
+        '<div class="row-right">' +
+          '<div class="amount paid">' + money(p.amount) + '</div>' +
+          statusPill('paid') +
+        '</div>' +
+      '</div>';
+    });
+    h += '</div>';
+  }
+  h += '</div>';
+
+  // Billing information
+  h += '<div class="card tint-blue">' +
+    '<div style="display:flex;gap:12px;align-items:flex-start">' +
+      '<div class="stat-icon bg-blue" style="width:38px;height:38px;margin:0">' + icon('file',17) + '</div>' +
+      '<div style="flex:1">' +
+        '<div style="font-weight:800;font-size:15px;margin-bottom:10px">Billing Information</div>' +
+        '<div class="kv" style="padding-top:0"><div style="flex:1"><div class="kv-label">Billing Month</div><div class="kv-value">' + monthLabel(m) + '</div></div></div>' +
+        '<div class="kv"><div style="flex:1"><div class="kv-label">Room Electricity Bill</div><div class="kv-value">' + money(bill) + '</div></div>' +
+        '<div style="flex:1"><div class="kv-label">Occupants</div><div class="kv-value">' + occ + '</div></div></div>' +
+        '<div class="kv"><div style="flex:1"><div class="kv-label">Tenant Electricity Share</div><div class="kv-value">' + money(share) + '</div></div></div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  return h;
+}
+
+/* ----------------------------------------------------------------
+   23. FINANCIAL RECORDS
+   ---------------------------------------------------------------- */
+function renderFinancialRecords(){
+  const m = UI.month;
+  const T = calculateDashboardTotals(m);
+  const tab = UI.finTab;
+
+  let pays = DB.payments.filter(function(p){ return p.month === m && p.type === (tab === 'rent' ? 'rent' : 'electricity'); });
+
+  pays = pays.filter(function(p){
+    if(UI.finTenant !== 'all' && p.tenantId !== UI.finTenant) return false;
+    if(UI.finRoom !== 'all' && p.roomId !== UI.finRoom) return false;
+    if(UI.finStatus !== 'all'){
+      const t = getTenant(p.tenantId);
+      if(!t) return false;
+      const expected = tab === 'rent' ? t.monthlyRent : elecShareFor(t, m);
+      const paidAll = tab === 'rent' ? rentPaidFor(t.id, m) : elecPaidFor(t.id, m);
+      const st = calculateTenantStatus(paidAll, expected);
+      if(st !== UI.finStatus) return false;
+    }
+    return true;
+  }).sort(function(a,b){ return b.date.localeCompare(a.date) || b.id.localeCompare(a.id); });
+
+  let h = '';
+  h += '<div class="page-head"><div>' +
+    '<h1 class="page-title">Financial Records</h1>' +
+    '<p class="page-sub">View all rent and electricity payments</p>' +
+  '</div></div>';
+
+  h += '<div class="tabs">' +
+    '<button class="tab' + (tab==='rent'?' active':'') + '" data-action="fin-tab" data-value="rent">Rent</button>' +
+    '<button class="tab' + (tab==='electricity'?' active':'') + '" data-action="fin-tab" data-value="electricity">Electricity</button>' +
+  '</div>';
+
+  h += monthSelector();
+
+  // Summary
+  const totalAmount = tab === 'rent' ? T.expectedRent : T.elecBill;
+  const collected = tab === 'rent' ? T.rentCollected : T.elecCollected;
+  const outstanding = tab === 'rent' ? T.rentDue : T.elecDue;
+
+  h += '<div class="card">' +
+    '<div class="section-head"><div>' +
+      '<h3 class="section-title">' + monthLabel(m) + '</h3>' +
+      '<div class="row-sub">' + (tab==='rent'?'Rent':'Electricity') + ' Summary</div>' +
+    '</div></div>' +
+    '<div class="grid2 tight">' +
+      '<div class="stat tint-blue" style="box-shadow:none">' +
+        '<div class="stat-icon bg-blue">' + icon('file',17) + '</div>' +
+        '<div class="stat-label">Total Amount</div>' +
+        '<div class="stat-value" style="color:var(--blue)">' + money(totalAmount) + '</div>' +
+      '</div>' +
+      '<div class="stat tint-green" style="box-shadow:none">' +
+        '<div class="stat-icon bg-green">' + icon('wallet',17) + '</div>' +
+        '<div class="stat-label">Collected</div>' +
+        '<div class="stat-value" style="color:var(--green)">' + money(collected) + '</div>' +
+      '</div>' +
+      '<div class="stat tint-red" style="box-shadow:none">' +
+        '<div class="stat-icon bg-red">' + icon('clock',17) + '</div>' +
+        '<div class="stat-label">Outstanding</div>' +
+        '<div class="stat-value" style="color:var(--red)">' + money(outstanding) + '</div>' +
+      '</div>' +
+      '<div class="stat tint-purple" style="box-shadow:none">' +
+        '<div class="stat-icon bg-purple">' + icon('users',17) + '</div>' +
+        '<div class="stat-label">Total Tenants</div>' +
+        '<div class="stat-value">' + T.totalTenants + '</div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  // Filters
+  h += '<div class="chip-row">' +
+    '<button class="chip" data-action="fin-filter" data-group="finTenant">' + icon('users',14) + (UI.finTenant==='all'?' All Tenants':' ' + esc((getTenant(UI.finTenant)||{}).name||'')) + '</button>' +
+    '<button class="chip" data-action="fin-filter" data-group="finRoom">' + icon('bed',14) + (UI.finRoom==='all'?' All Rooms':' Room ' + esc((getRoom(UI.finRoom)||{}).roomNumber||'')) + '</button>' +
+    '<button class="chip' + (UI.finStatus!=='all'?' active':'') + '" data-action="fin-filter" data-group="finStatus">' + icon('filter',14) + ' ' + (UI.finStatus==='all'?'All Status':UI.finStatus.charAt(0).toUpperCase()+UI.finStatus.slice(1)) + '</button>' +
+  '</div>';
+
+  // Records
+  h += '<div class="card flush">' +
+    '<div style="padding:16px" class="section-head">' +
+      '<div><h3 class="section-title">Payment Records</h3>' +
+      '<div class="row-sub">' + pays.length + ' record' + (pays.length===1?'':'s') + ' for ' + monthLabel(m) + '</div></div>' +
+      '<button class="btn btn-ghost btn-sm" data-action="export">' + icon('download',15) + ' Export</button>' +
+    '</div>';
+
+  if(!pays.length){
+    h += '<div class="empty" style="padding:34px"><div class="ic-wrap">' + icon('file',24) + '</div>' +
+      '<h4>No payment records</h4><p>No ' + (tab==='rent'?'rent':'electricity') + ' payments for ' + monthLabel(m) + '.</p></div>';
+  } else {
+    h += '<div class="table-head" style="padding-left:16px;padding-right:16px">' +
+      '<span style="flex:.9">Date</span><span style="flex:1.5">Tenant</span>' +
+      '<span style="flex:.7;text-align:center">Room</span><span style="flex:1;text-align:right">Amount</span>' +
+      '<span style="flex:1;text-align:right">Mode</span></div>';
+    h += '<div class="list">';
+    pays.forEach(function(p){
+      const t = getTenant(p.tenantId);
+      const room = getRoom(p.roomId);
+      h += '<button class="row" data-action="go" data-screen="tenant-details" data-id="' + p.tenantId + '" style="padding-left:16px;padding-right:16px">' +
+        '<span style="flex:.9;font-size:12.5px;font-weight:700;color:var(--muted)">' + dateLabel(p.date) + '</span>' +
+        '<span style="flex:1.5;font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(t ? t.name : 'Unknown') + '</span>' +
+        '<span style="flex:.7;text-align:center;font-weight:600;font-size:13.5px">' + esc(room ? room.roomNumber : '-') + '</span>' +
+        '<span style="flex:1;text-align:right;font-weight:700;font-size:13.5px;color:var(--green)">' + money(p.amount) + '</span>' +
+        '<span style="flex:1;text-align:right;font-size:12.5px;color:var(--muted)">' + esc(p.mode) + '</span>' +
+      '</button>';
+    });
+    h += '</div>';
+  }
+  h += '</div>';
+
+  return h;
+}
+
+/* ----------------------------------------------------------------
+   24. COMPLAINTS
+   ---------------------------------------------------------------- */
+function renderComplaints(){
+  let list = DB.complaints.slice().sort(function(a,b){ return b.createdAt.localeCompare(a.createdAt); });
+  const all = list.length;
+  const openCount = DB.complaints.filter(function(c){ return c.status==='open'; }).length;
+  const progCount = DB.complaints.filter(function(c){ return c.status==='in-progress'; }).length;
+  const resCount = DB.complaints.filter(function(c){ return c.status==='resolved'; }).length;
+
+  if(UI.complaintSearch){
+    const q = UI.complaintSearch.toLowerCase();
+    list = list.filter(function(c){
+      const t = getTenant(c.tenantId);
+      const room = getRoom(c.roomId);
+      return c.title.toLowerCase().indexOf(q) >= 0 ||
+        (t && t.name.toLowerCase().indexOf(q) >= 0) ||
+        (room && room.roomNumber.indexOf(q) >= 0);
+    });
+  }
+  if(UI.complaintFilter !== 'all'){
+    list = list.filter(function(c){ return c.status === UI.complaintFilter; });
+  }
+
+  let h = '';
+  h += '<div class="page-head">' +
+    '<div><h1 class="page-title">Complaints <span class="count-badge">' + all + '</span></h1>' +
+    '<p class="page-sub">Manage and track all tenant complaints</p></div>' +
+    '<button class="btn btn-primary btn-sm" data-action="go" data-screen="complaint-add">' + icon('plus',16) + ' Add</button>' +
+  '</div>';
+
+  h += '<div class="search">' + icon('search',18) +
+    '<input type="search" placeholder="Search by complaint, tenant or room number..." value="' + esc(UI.complaintSearch) + '" data-search="complaintSearch" aria-label="Search complaints">' +
+  '</div>';
+
+  h += '<div class="chip-row">' +
+    '<button class="chip' + (UI.complaintFilter==='all'?' active':'') + '" data-action="filter" data-group="complaintFilter" data-value="all">All (' + all + ')</button>' +
+    '<button class="chip' + (UI.complaintFilter==='open'?' active':'') + '" data-action="filter" data-group="complaintFilter" data-value="open">Open (' + openCount + ')</button>' +
+    '<button class="chip' + (UI.complaintFilter==='in-progress'?' active':'') + '" data-action="filter" data-group="complaintFilter" data-value="in-progress">In Progress (' + progCount + ')</button>' +
+    '<button class="chip' + (UI.complaintFilter==='resolved'?' active':'') + '" data-action="filter" data-group="complaintFilter" data-value="resolved">Resolved (' + resCount + ')</button>' +
+  '</div>';
+
+  if(!list.length){
+    h += '<div class="card"><div class="empty"><div class="ic-wrap">' + icon('wrench',26) + '</div>' +
+      '<h4>No complaints found</h4><p>All quiet on the hostel front.</p></div></div>';
+    return h;
+  }
+
+  h += '<div class="card flush"><div class="list">';
+  list.forEach(function(c){
+    const t = getTenant(c.tenantId);
+    const room = getRoom(c.roomId);
+    const tone = c.status==='open' ? 'bg-red' : (c.status==='in-progress' ? 'bg-amber' : 'bg-green');
+    h += '<button class="row" data-action="go" data-screen="complaint-details" data-id="' + c.id + '">' +
+      '<div class="stat-icon ' + tone + '" style="width:44px;height:44px;margin:0">' + icon(c.icon||'wrench',20) + '</div>' +
+      '<div class="row-main">' +
+        '<div class="row-title truncate">' + esc(c.title) + '</div>' +
+        '<div class="row-sub">' + icon('user',13) + ' ' + esc(t ? t.name : '-') + '</div>' +
+        '<div class="row-sub">' + icon('bed',13) + ' Room ' + esc(room ? room.roomNumber : '-') + '</div>' +
+      '</div>' +
+      '<div class="row-right">' + statusPill(c.status) +
+        '<div class="row-sub">' + relTime(c.createdAt) + '</div>' +
+      '</div>' +
+      '<span style="color:#B7C2D8">' + icon('chevRight',18) + '</span>' +
+    '</button>';
+  });
+  h += '</div></div>';
+  return h;
+}
+
+/* ----------------------------------------------------------------
+   25. ADD COMPLAINT
+   ---------------------------------------------------------------- */
+function renderComplaintForm(){
+  const titles = ['Water Leakage','Wi-Fi not working','Bathroom light issue','Fan not working','Low water pressure','Door lock issue','Extra power socket required','AC not working','Other'];
+  let h = '';
+  h += '<h1 class="page-title">Add Complaint</h1>';
+  h += '<p class="page-sub" style="margin-bottom:18px">Record a new tenant complaint</p>';
+
+  h += '<form id="complaint-form" novalidate>';
+  h += '<div class="field"><label for="cf-title">Complaint Title <span class="req">*</span></label>' +
+    '<div class="input-wrap select-wrap">' + icon('wrench',18) +
+    '<select id="cf-title" name="title">' + titles.map(function(t){ return '<option value="' + t + '">' + t + '</option>'; }).join('') + '</select>' +
+    '<span class="chev">' + icon('chevDown',18) + '</span></div></div>';
+
+  h += '<div class="field"><label for="cf-tenant">Tenant <span class="req">*</span></label>' +
+    '<div class="input-wrap select-wrap">' + icon('user',18) +
+    '<select id="cf-tenant" name="tenantId">' +
+    DB.tenants.map(function(t){
+      const room = getRoom(t.roomId);
+      return '<option value="' + t.id + '">' + esc(t.name) + ' &mdash; Room ' + esc(room?room.roomNumber:'-') + '</option>';
+    }).join('') +
+    '</select><span class="chev">' + icon('chevDown',18) + '</span></div></div>';
+
+  h += '<div class="field"><label for="cf-desc">Description <span class="req">*</span></label>' +
+    '<div class="input-wrap textarea">' + icon('file',18) +
+    '<textarea id="cf-desc" name="description" placeholder="Describe the issue in detail..."></textarea>' +
+    '</div></div>';
+
+  h += '<div class="field"><label>Images (optional)</label>' +
+    '<div class="img-grid">' +
+      '<div class="img-ph">' + icon('file',22) + '</div>' +
+      '<div class="img-add">' + icon('plus',20) + '<span>Add Photo</span></div>' +
+    '</div></div>';
+
+  h += '<div class="err" id="complaint-form-err" style="display:none;margin-bottom:12px"></div>';
+  h += '<button class="btn btn-primary btn-block" type="submit">' + icon('check',18) + ' Submit Complaint</button>';
+  h += '</form>';
+  return h;
+}
+
+/* ----------------------------------------------------------------
+   26. COMPLAINT DETAILS
+   ---------------------------------------------------------------- */
+function renderComplaintDetails(){
+  const c = getComplaint(UI.params.id);
+  if(!c) return '<div class="card"><div class="empty"><h4>Complaint not found.</h4></div></div>';
+  const t = getTenant(c.tenantId);
+  const room = getRoom(c.roomId);
+
+  const steps = [
+    { key:'open', label:'Reported', sub:'Complaint submitted by ' + (t ? t.name : 'tenant') + '.', time: dateTimeLabel(c.createdAt) },
+    { key:'in-progress', label:'In Progress', sub: c.status === 'open' ? 'Not yet marked as in progress.' : 'Maintenance team is working on it.', time: c.status !== 'open' ? dateTimeLabel(c.createdAt) : '' },
+    { key:'resolved', label:'Resolved', sub: c.status === 'resolved' ? 'Issue has been resolved.' : 'Not yet resolved.', time: '' }
+  ];
+  const order = ['open','in-progress','resolved'];
+  const curIdx = order.indexOf(c.status);
+
+  let h = '';
+  h += '<div class="card">' +
+    '<div style="display:flex;gap:14px;align-items:flex-start">' +
+      '<div class="stat-icon ' + (c.status==='open'?'bg-red':(c.status==='in-progress'?'bg-amber':'bg-green')) + '" style="width:52px;height:52px;margin:0">' + icon(c.icon||'wrench',24) + '</div>' +
+      '<div style="flex:1">' +
+        '<div class="row-sub">Complaint #' + esc(c.id) + '</div>' +
+        '<div style="font-size:21px;font-weight:800;letter-spacing:-.4px;margin-top:2px">' + esc(c.title) + '</div>' +
+        '<div class="row-sub" style="margin-top:4px">Reported on ' + dateTimeLabel(c.createdAt) + '</div>' +
+      '</div>' +
+      statusPill(c.status) +
+    '</div>' +
+  '</div>';
+
+  h += '<div class="card">' +
+    '<div style="display:flex;gap:14px">' +
+      '<div style="flex:1">' +
+        '<div class="kv-label">Reported by</div>' +
+        '<div style="display:flex;gap:8px;align-items:center;margin-top:6px">' + avatar(t ? t.name : '?','sm') +
+        '<div><div style="font-weight:700;font-size:13.5px">' + esc(t ? t.name : '-') + '</div>' +
+        '<div class="row-sub">' + esc(t ? t.phone : '') + '</div></div></div>' +
+      '</div>' +
+      '<div style="width:1px;background:var(--line)"></div>' +
+      '<div style="flex:1">' +
+        '<div class="kv-label">Room</div>' +
+        '<div style="display:flex;gap:8px;align-items:center;margin-top:6px">' +
+        '<div class="stat-icon bg-blue" style="width:34px;height:34px;margin:0">' + icon('bed',16) + '</div>' +
+        '<div style="font-weight:800;font-size:17px">' + esc(room ? room.roomNumber : '-') + '</div></div>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  h += '<div class="card">' +
+    '<h3 class="section-title" style="margin-bottom:8px">Description</h3>' +
+    '<p style="margin:0;color:var(--muted);font-size:14px;line-height:1.5">' + esc(c.description) + '</p>' +
+  '</div>';
+
+  h += '<div class="card">' +
+    '<div class="section-head"><h3 class="section-title">Images (2)</h3>' +
+    '<span class="link">View All ' + icon('chevRight',14) + '</span></div>' +
+    '<div class="img-grid">' +
+      '<div class="img-ph">' + icon('droplet',22) + '</div>' +
+      '<div class="img-ph">' + icon('droplet',22) + '</div>' +
+      '<div class="img-add">' + icon('plus',20) + '<span>Add Photo</span></div>' +
+    '</div>' +
+  '</div>';
+
+  h += '<div class="card">' +
+    '<h3 class="section-title" style="margin-bottom:14px">Status Timeline</h3>' +
+    '<div class="timeline">';
+  steps.forEach(function(s, i){
+    let cls = '';
+    if(i < curIdx) cls = 'done';
+    else if(i === curIdx) cls = (c.status === 'resolved' ? 'done active' : 'active');
+    h += '<div class="tl-item ' + cls + '">' +
+      '<span class="tl-dot"></span>' +
+      '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">' +
+        '<div><div class="tl-title">' + s.label + '</div>' +
+        '<div class="tl-sub">' + s.sub + '</div>' +
+        (s.time ? '<div class="tl-sub" style="opacity:.75">' + s.time + '</div>' : '') + '</div>' +
+        (i === curIdx ? statusPill(c.status) : '') +
+      '</div>' +
+    '</div>';
+  });
+  h += '</div></div>';
+
+  h += '<div class="btn-row">' +
+    '<button class="btn btn-warn-soft" data-action="complaint-status" data-id="' + c.id + '" data-value="in-progress"' + (c.status !== 'open' ? ' disabled' : '') + '>' +
+      icon('clock',17) + ' Mark In Progress</button>' +
+    '<button class="btn btn-success-soft" data-action="complaint-status" data-id="' + c.id + '" data-value="resolved"' + (c.status === 'resolved' ? ' disabled' : '') + '>' +
+      icon('checkCircle',17) + ' Mark Resolved</button>' +
+  '</div>';
+
+  if(c.status === 'resolved'){
+    h += '<button class="btn btn-ghost btn-block" style="margin-top:10px" data-action="complaint-status" data-id="' + c.id + '" data-value="open">Reopen Complaint</button>';
+  }
+
+  return h;
+}
+
+/* ----------------------------------------------------------------
+   27. MORE / ADMIN DASHBOARD
+   ---------------------------------------------------------------- */
+function renderMore(){
+  const a = DB.admin;
+  let h = '';
+  h += '<div class="page-head"><div><h1 class="page-title">More</h1>' +
+    '<p class="page-sub">Manage hostel settings and records</p></div></div>';
+
+  h += '<div class="card tint-blue">' +
+    '<div style="display:flex;gap:14px;align-items:center">' +
+      avatar(a.name,'lg') +
+      '<div style="flex:1">' +
+        '<div style="font-size:19px;font-weight:800">' + esc(a.name) + '</div>' +
+        '<div class="row-sub" style="margin-top:3px">' + esc(a.phone) + '</div>' +
+        '<span class="pill pill-resolved" style="margin-top:7px">' + icon('checkCircle',12) + ' Admin Access</span>' +
+      '</div>' +
+      '<span style="color:#B7C2D8">' + icon('chevRight',20) + '</span>' +
+    '</div>' +
+  '</div>';
+
+  const mgmt = [
+    ['rent','Rent','Manage rent, view dues and record payments','wallet','bg-blue'],
+    ['electricity','Electricity','Manage electricity, view dues and record payments','zap','bg-amber'],
+    ['rooms','Rooms','Manage hostel rooms and occupancy','bed','bg-purple'],
+    ['complaints','Complaints','View and manage tenant complaints','wrench','bg-red'],
+    ['financial','Financial Records','View all rent and electricity payments','chart','bg-green']
+  ];
+  h += '<div class="section-title" style="margin:6px 0 10px">Management</div>';
+  h += '<div class="card flush"><div class="list">';
+  mgmt.forEach(function(m){
+    h += '<button class="row" data-action="go" data-screen="' + m[0] + '">' +
+      '<div class="stat-icon ' + m[4] + '" style="width:44px;height:44px;margin:0">' + icon(m[3],20) + '</div>' +
+      '<div class="row-main"><div class="row-title">' + m[1] + '</div>' +
+      '<div class="row-sub">' + m[2] + '</div></div>' +
+      '<span style="color:#B7C2D8">' + icon('chevRight',18) + '</span>' +
+    '</button>';
+  });
+  h += '</div></div>';
+
+  const acct = [
+    ['admin-profile','Admin Profile','View and update your profile','user','bg-green'],
+    ['hostel-info','Hostel Information','View and edit hostel details','building','bg-blue'],
+    ['logout','Logout','Sign out from your account','logout','bg-red']
+  ];
+  h += '<div class="section-title" style="margin:18px 0 10px">Account</div>';
+  h += '<div class="card flush"><div class="list">';
+  acct.forEach(function(m){
+    const action = m[0] === 'logout' ? 'logout' : 'go';
+    const attrs = action === 'go' ? ' data-screen="' + m[0] + '"' : '';
+    h += '<button class="row" data-action="' + action + '"' + attrs + '>' +
+      '<div class="stat-icon ' + m[4] + '" style="width:44px;height:44px;margin:0">' + icon(m[3],20) + '</div>' +
+      '<div class="row-main"><div class="row-title">' + m[1] + '</div>' +
+      '<div class="row-sub">' + m[2] + '</div></div>' +
+      '<span style="color:#B7C2D8">' + icon('chevRight',18) + '</span>' +
+    '</button>';
+  });
+  h += '</div></div>';
+
+  return h;
+}
+
+/* ----------------------------------------------------------------
+   28. HOSTEL INFORMATION
+   ---------------------------------------------------------------- */
+function renderHostelInfo(){
+  const hs = DB.hostel;
+  const totalRooms = DB.rooms.length;
+  let h = '';
+
+  h += '<div class="card">' +
+    '<div style="display:flex;gap:16px;align-items:center">' +
+      '<div class="avatar lg" style="background:var(--blue-50);color:var(--blue)">' + initials(hs.name) + '</div>' +
+      '<div style="flex:1">' +
+        '<div style="font-size:21px;font-weight:800;letter-spacing:-.4px">' + esc(hs.name) + '</div>' +
+        '<div class="row-sub" style="margin-top:3px">Hostel Profile</div>' +
+        '<span class="pill pill-resolved" style="margin-top:7px">' + icon('checkCircle',12) + ' Active</span>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+
+  // Basic information
+  h += '<div class="card">' +
+    '<div class="section-head"><h3 class="section-title">' + icon('building',18) + ' Basic Information</h3>' +
+    '<button class="link" data-action="edit-hostel" data-section="basic">' + icon('edit',15) + ' Edit</button></div>' +
+    '<div class="kv"><div class="kv-icon">' + icon('building',17) + '</div><div><div class="kv-label">Hostel Name</div><div class="kv-value">' + esc(hs.name) + '</div></div></div>' +
+    '<div class="kv"><div class="kv-icon">' + icon('mapPin',17) + '</div><div><div class="kv-label">Address</div><div class="kv-value" style="white-space:pre-line">' + esc(hs.address) + '</div></div></div>' +
+    '<div class="kv"><div class="kv-icon">' + icon('user',17) + '</div><div><div class="kv-label">Owner Name</div><div class="kv-value">' + esc(hs.ownerName) + '</div></div></div>' +
+    '<div class="kv"><div class="kv-icon">' + icon('phone',17) + '</div><div><div class="kv-label">Contact Number</div><div class="kv-value">' + esc(hs.contact) + '</div></div></div>' +
+  '</div>';
+
+  // Hostel details
+  h += '<div class="card">' +
+    '<div class="section-head"><h3 class="section-title">' + icon('gear',18) + ' Hostel Details</h3>' +
+    '<button class="link" data-action="edit-hostel" data-section="details">' + icon('edit',15) + ' Edit</button></div>' +
+    '<div class="kv"><div class="kv-icon">' + icon('bed',17) + '</div><div><div class="kv-label">Total Rooms</div><div class="kv-value">' + totalRooms + '</div></div></div>' +
+    '<div class="kv"><div class="kv-icon">' + icon('users',17) + '</div><div><div class="kv-label">Students Per Room</div><div class="kv-value">3 maximum</div></div></div>' +
+    '<div class="kv"><div class="kv-icon">' + icon('rupee',17) + '</div><div><div class="kv-label">Default Room Monthly Rent</div><div class="kv-value">' + money(hs.defaultRoomRent) + '</div></div></div>' +
+    '<div class="kv"><div class="kv-icon">' + icon('rupee',17) + '</div><div><div class="kv-label">Default Tenant Monthly Rent</div><div class="kv-value">' + money(hs.defaultTenantRent) + '</div></div></div>' +
+  '</div>';
+
+  // Electricity
+  h += '<div class="card tint-amber">' +
+    '<h3 class="section-title" style="margin-bottom:12px">' + icon('zap',18) + ' Electricity Billing</h3>' +
+    '<div class="kv"><div class="kv-icon bg-amber" style="background:#FFF1D6;color:var(--amber)">' + icon('zap',17) + '</div>' +
+    '<div><div class="kv-label">Billing Method</div><div class="kv-value">Separate from rent</div></div></div>' +
+    '<div class="kv"><div class="kv-icon bg-amber" style="background:#FFF1D6;color:var(--amber)">' + icon('users',17) + '</div>' +
+    '<div><div class="kv-label">Allocation</div><div class="kv-value">Equal split among current room occupants</div></div></div>' +
+    '<div class="hint" style="margin-top:10px;color:var(--muted);font-size:12.5px">Room electricity bill &divide; number of current occupants = per-tenant share. Electricity is never included in the ' + money(hs.defaultRoomRent) + ' room rent.</div>' +
+  '</div>';
+
+  // Notes
+  h += '<div class="card">' +
+    '<div class="section-head"><h3 class="section-title">' + icon('file',18) + ' Additional Information</h3>' +
+    '<button class="link" data-action="edit-hostel" data-section="notes">' + icon('edit',15) + ' Edit</button></div>' +
+    '<div class="kv"><div class="kv-icon">' + icon('file',17) + '</div><div><div class="kv-label">Notes</div><div class="kv-value">' + esc(hs.notes || 'NA') + '</div></div></div>' +
+  '</div>';
+
+  return h;
+}
+
+/* ----------------------------------------------------------------
+   29. ADMIN PROFILE
+   ---------------------------------------------------------------- */
+function renderAdminProfile(){
+  const a = DB.admin;
+  let h = '';
+  h += '<h1 class="page-title">Admin Profile</h1>';
+  h += '<p class="page-sub" style="margin-bottom:18px">View and update your profile</p>';
+
+  h += '<div class="card" style="text-align:center">' +
+    '<div style="display:flex;justify-content:center">' + avatar(a.name,'lg') + '</div>' +
+    '<div style="font-size:20px;font-weight:800;margin-top:12px">' + esc(a.name) + '</div>' +
+    '<div class="row-sub">' + esc(a.phone) + '</div>' +
+    '<span class="pill pill-resolved" style="margin-top:8px">' + icon('checkCircle',12) + ' Admin Access</span>' +
+  '</div>';
+
+  h += '<form id="admin-form" novalidate>' +
+    '<div class="field"><label for="af-name">Admin Name <span class="req">*</span></label>' +
+      '<div class="input-wrap">' + icon('user',18) + '<input id="af-name" name="name" type="text" value="' + esc(a.name) + '" placeholder="Enter admin name"></div></div>' +
+    '<div class="field"><label for="af-phone">Mobile Number <span class="req">*</span></label>' +
+      '<div class="input-wrap">' + icon('phone',18) + '<input id="af-phone" name="phone" type="tel" inputmode="numeric" maxlength="10" value="' + esc(String(a.phone).replace(/\D/g,'').slice(-10)) + '" placeholder="Enter mobile number"></div></div>' +
+    '<div class="field"><label for="af-email">Email (optional)</label>' +
+      '<div class="input-wrap">' + icon('mail',18) + '<input id="af-email" name="email" type="email" value="' + esc(a.email||'') + '" placeholder="Enter email address"></div></div>' +
+    '<div class="err" id="admin-form-err" style="display:none;margin-bottom:12px"></div>' +
+    '<button class="btn btn-primary btn-block" type="submit">' + icon('check',18) + ' Save Changes</button>' +
+  '</form>';
+
+  return h;
+}
+
+/* ----------------------------------------------------------------
+   30. BOTTOM SHEETS
+   ---------------------------------------------------------------- */
+/* ---- Record Payment ---- */
+function openPaymentSheet(tenantId, month, type){
+  const t = getTenant(tenantId);
+  if(!t) return;
+  UI.sheet = { kind:'payment', tenantId:tenantId, month: month || UI.month, type: type || 'rent' };
+  renderPaymentSheet();
+}
+
+function renderPaymentSheet(){
+  const s = UI.sheet;
+  if(!s || s.kind !== 'payment') return;
+  const t = getTenant(s.tenantId);
+  const room = getRoom(t.roomId);
+  const m = s.month;
+
+  const rentPaid = rentPaidFor(t.id, m);
+  const rentDue = calculateRentDue(t, m);
+  const bill = elecBillFor(t.roomId, m);
+  const share = elecShareFor(t, m);
+  const elecPaid = elecPaidFor(t.id, m);
+  const elecDue = calculateElectricityDue(t, m);
+
+  const dueAmount = s.type === 'rent' ? rentDue : elecDue;
+  const today = '2026-10-15';
+
+  let h = '';
+  h += '<div class="sheet-head">' +
+    '<div><h2 class="sheet-title">Record Payment</h2>' +
+    '<p class="sheet-sub">Add a new payment for this tenant</p></div>' +
+    '<button class="close-btn" data-action="close-sheet" aria-label="Close">' + icon('x',18) + '</button>' +
+  '</div>';
+
+  h += '<div class="card tint-blue" style="margin-bottom:16px">' +
+    '<div style="display:flex;gap:12px;align-items:center">' + avatar(t.name) +
+    '<div style="flex:1"><div style="font-weight:800;font-size:15px">' + esc(t.name) + '</div>' +
+    '<div class="row-sub">' + esc(t.phone) + '</div>' +
+    '<div class="row-sub" style="color:var(--blue);font-weight:600">' + icon('bed',13) + ' Room ' + esc(room ? room.roomNumber : '-') + '</div></div></div>' +
+  '</div>';
+
+  // Payment type toggle
+  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Payment Type</div>' +
+    '<div class="tabs" style="margin-bottom:16px">' +
+      '<button class="tab' + (s.type==='rent'?' active':'') + '" data-action="sheet-type" data-value="rent">' + icon('home',15) + ' Rent</button>' +
+      '<button class="tab' + (s.type==='electricity'?' active':'') + '" data-action="sheet-type" data-value="electricity">' + icon('zap',15) + ' Electricity</button>' +
+    '</div>';
+
+  // Month
+  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Month</div>' +
+    '<div class="input-wrap select-wrap" style="margin-bottom:16px">' + icon('calendar',18) +
+      '<select id="pay-month" data-action="sheet-month">' +
+        ['2026-08','2026-09','2026-10'].map(function(mm){
+          return '<option value="' + mm + '"' + (mm===m?' selected':'') + '>' + monthLabel(mm) + '</option>';
+        }).join('') +
+      '</select><span class="chev">' + icon('chevDown',18) + '</span></div>';
+
+  // Due summary
+  if(s.type === 'rent'){
+    h += '<div class="grid2 tight" style="margin-bottom:16px">' +
+      '<div class="stat tint-red" style="box-shadow:none">' +
+        '<div class="stat-label">Amount Due</div>' +
+        '<div class="stat-value" style="color:var(--red);font-size:19px">' + money(rentDue) + '</div>' +
+        '<div class="stat-foot">Rent ' + money(t.monthlyRent) + ' &bull; paid ' + money(rentPaid) + '</div>' +
+      '</div>' +
+      '<div class="stat tint-green" style="box-shadow:none">' +
+        '<div class="stat-label">Remaining After Payment</div>' +
+        '<div class="stat-value" style="color:var(--green);font-size:19px" id="pay-remaining">' + money(rentDue) + '</div>' +
+      '</div>' +
+    '</div>';
+  } else {
+    h += '<div class="card tint-blue" style="margin-bottom:14px">' +
+      '<div class="kv" style="padding-top:0"><div style="flex:1"><div class="kv-label">Room Electricity Bill</div><div class="kv-value">' + money(bill) + '</div></div>' +
+      '<div style="flex:1"><div class="kv-label">Tenant Share</div><div class="kv-value">' + money(share) + '</div></div></div>' +
+      '<div class="kv"><div style="flex:1"><div class="kv-label">Already Paid</div><div class="kv-value">' + money(elecPaid) + '</div></div>' +
+      '<div style="flex:1"><div class="kv-label">Remaining Due</div><div class="kv-value" style="color:var(--red)">' + money(elecDue) + '</div></div></div>' +
+    '</div>';
+    h += '<div class="grid2 tight" style="margin-bottom:16px">' +
+      '<div class="stat tint-red" style="box-shadow:none">' +
+        '<div class="stat-label">Amount Due</div>' +
+        '<div class="stat-value" style="color:var(--red);font-size:19px">' + money(elecDue) + '</div>' +
+      '</div>' +
+      '<div class="stat tint-green" style="box-shadow:none">' +
+        '<div class="stat-label">Remaining After Payment</div>' +
+        '<div class="stat-value" style="color:var(--green);font-size:19px" id="pay-remaining">' + money(elecDue) + '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Amount Paid</div>' +
+    '<div class="input-wrap" style="margin-bottom:16px">' + icon('rupee',18) +
+      '<input id="pay-amount" type="number" inputmode="numeric" min="0" step="1" placeholder="0" data-due="' + dueAmount + '" value="' + (dueAmount > 0 ? dueAmount : '') + '">' +
+    '</div>';
+
+  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Payment Date</div>' +
+    '<div class="input-wrap" style="margin-bottom:16px">' + icon('calendar',18) +
+      '<input id="pay-date" type="date" value="' + today + '"></div>';
+
+  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Payment Mode</div>' +
+    '<div class="input-wrap select-wrap" style="margin-bottom:16px">' + icon('card',18) +
+      '<select id="pay-mode"><option>Cash</option><option selected>UPI</option><option>Bank Transfer</option><option>Other</option></select>' +
+      '<span class="chev">' + icon('chevDown',18) + '</span></div>';
+
+  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Note (Optional)</div>' +
+    '<div class="input-wrap textarea" style="margin-bottom:20px">' +
+      '<textarea id="pay-note" placeholder="Add a note (e.g. UPI ref, cash, etc.)" style="min-height:70px"></textarea></div>';
+
+  h += '<div class="btn-row">' +
+    '<button class="btn btn-ghost" data-action="close-sheet">Cancel</button>' +
+    '<button class="btn btn-primary" data-action="save-payment" data-id="' + t.id + '">' + icon('check',18) + ' Save Payment</button>' +
+  '</div>';
+
+  openSheet(h);
+}
+
+/* ---- Send Reminder ---- */
+function openReminderSheet(tenantIds, type){
+  const m = UI.month;
+  let ids = tenantIds;
+  if(!ids || !ids.length){
+    ids = DB.tenants.filter(function(t){ return tenantTotalDue(t, m) > 0; }).map(function(t){ return t.id; });
+  }
+  UI.sheet = { kind:'reminder', tenantIds: ids, type: type || 'all' };
+  renderReminderSheet();
+}
+
+function renderReminderSheet(){
+  const s = UI.sheet;
+  if(!s || s.kind !== 'reminder') return;
+  const m = UI.month;
+  const tenants = s.tenantIds.map(getTenant).filter(Boolean);
+
+  const rentDueTenants = tenants.filter(function(t){ return calculateRentDue(t, m) > 0; });
+  const elecDueTenants = tenants.filter(function(t){ return calculateElectricityDue(t, m) > 0; });
+  const rentDueTotal = r2(rentDueTenants.reduce(function(sum,t){ return sum + calculateRentDue(t, m); }, 0));
+  const elecDueTotal = r2(elecDueTenants.reduce(function(sum,t){ return sum + calculateElectricityDue(t, m); }, 0));
+
+  const defaultMsg = 'Your hostel payment is pending for ' + monthLabel(m) + '. Please clear your due amount at the earliest. If you have already paid, kindly ignore this message.';
+
+  let h = '';
+  h += '<div class="sheet-head">' +
+    '<div style="display:flex;gap:12px;align-items:flex-start">' +
+      '<div class="stat-icon bg-blue" style="width:44px;height:44px;margin:0">' + icon('send',20) + '</div>' +
+      '<div><h2 class="sheet-title">Send Reminder</h2>' +
+      '<p class="sheet-sub">Send payment reminder to selected tenants</p></div>' +
+    '</div>' +
+    '<button class="close-btn" data-action="close-sheet" aria-label="Close">' + icon('x',18) + '</button>' +
+  '</div>';
+
+  h += '<div class="card tint-blue">' +
+    '<div style="display:flex;gap:12px;align-items:center">' +
+      '<div class="stat-icon bg-blue" style="width:40px;height:40px;margin:0">' + icon('users',19) + '</div>' +
+      '<div><div style="font-weight:800;font-size:17px">' + tenants.length + ' tenants selected</div>' +
+      '<div class="row-sub">Send reminder to all selected tenants</div></div>' +
+    '</div>' +
+  '</div>';
+
+  h += '<div class="grid2 tight">' +
+    '<div class="stat tint-red" style="box-shadow:none">' +
+      '<div class="stat-icon bg-red">' + icon('home',17) + '</div>' +
+      '<div class="stat-label"><span style="font-weight:800;color:var(--red);font-size:17px">' + rentDueTenants.length + '</span> have rent due</div>' +
+      '<div class="stat-foot">Total due: <span style="color:var(--red);font-weight:800">' + money(rentDueTotal) + '</span></div>' +
+    '</div>' +
+    '<div class="stat tint-amber" style="box-shadow:none">' +
+      '<div class="stat-icon bg-amber">' + icon('zap',17) + '</div>' +
+      '<div class="stat-label"><span style="font-weight:800;color:var(--red);font-size:17px">' + elecDueTenants.length + '</span> have electricity due</div>' +
+      '<div class="stat-foot">Total due: <span style="color:var(--red);font-weight:800">' + money(elecDueTotal) + '</span></div>' +
+    '</div>' +
+  '</div>';
+
+  h += '<div class="section-head" style="margin-top:6px">' +
+    '<span style="font-size:13.5px;font-weight:700">Message</span>' +
+    '<button class="link" data-action="default-message">Use Default Message</button>' +
+  '</div>';
+  h += '<div class="input-wrap textarea" style="margin-bottom:20px">' +
+    '<textarea id="reminder-message" maxlength="500" style="min-height:110px">' + esc(defaultMsg) + '</textarea></div>';
+
+  h += '<div class="btn-row">' +
+    '<button class="btn btn-ghost" data-action="close-sheet">Cancel</button>' +
+    '<button class="btn btn-primary" data-action="send-reminder">' + icon('send',17) + ' Send Reminder</button>' +
+  '</div>';
+
+  openSheet(h);
+}
+
+/* ---- Electricity bill sheet ---- */
+function openElectricityBillSheet(roomId){
+  const r = getRoom(roomId);
+  if(!r) return;
+  UI.sheet = { kind:'elec-bill', roomId: roomId };
+  renderElectricityBillSheet();
+}
+function renderElectricityBillSheet(){
+  const s = UI.sheet;
+  if(!s || s.kind !== 'elec-bill') return;
+  const r = getRoom(s.roomId);
+  const m = UI.month;
+  const occ = roomOccupants(r.id).length;
+  const current = elecBillFor(r.id, m);
+
+  let h = '';
+  h += '<div class="sheet-head">' +
+    '<div><h2 class="sheet-title">Room Electricity Bill</h2>' +
+    '<p class="sheet-sub">Room ' + esc(r.roomNumber) + ' &bull; ' + monthLabel(m) + '</p></div>' +
+    '<button class="close-btn" data-action="close-sheet" aria-label="Close">' + icon('x',18) + '</button>' +
+  '</div>';
+
+  h += '<div class="card tint-amber" style="margin-bottom:16px">' +
+    '<div style="display:flex;gap:12px;align-items:center">' +
+      '<div class="stat-icon bg-amber" style="width:40px;height:40px;margin:0">' + icon('zap',19) + '</div>' +
+      '<div><div style="font-weight:800;font-size:15px">' + occ + ' occupant' + (occ===1?'':'s') + ' in this room</div>' +
+      '<div class="row-sub">Bill will be split equally among current occupants</div></div>' +
+    '</div>' +
+  '</div>';
+
+  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Total Electricity Bill (&#8377;)</div>' +
+    '<div class="input-wrap" style="margin-bottom:12px">' + icon('rupee',18) +
+      '<input id="bill-amount" type="number" inputmode="numeric" min="0" step="1" value="' + current + '" placeholder="Enter electricity bill amount">' +
+    '</div>';
+
+  h += '<div class="hint" style="font-size:12.5px;color:var(--muted);margin-bottom:18px">' +
+    'Per-tenant share will be <strong id="bill-share">' + (occ ? money(current / occ) : money(0)) + '</strong> ' +
+    '(' + money(current) + ' &divide; ' + occ + ' occupant' + (occ===1?'':'s') + ').</div>';
+
+  h += '<div class="err" id="bill-err" style="display:none;margin-bottom:12px"></div>';
+
+  h += '<div class="btn-row">' +
+    '<button class="btn btn-ghost" data-action="close-sheet">Cancel</button>' +
+    '<button class="btn btn-primary" data-action="save-elec-bill" data-id="' + r.id + '">' + icon('check',18) + ' Save Bill</button>' +
+  '</div>';
+
+  openSheet(h);
+}
+
+/* ---- Edit hostel info sheet ---- */
+function openHostelEditSheet(section){
+  const hs = DB.hostel;
+  let h = '';
+  h += '<div class="sheet-head">' +
+    '<div><h2 class="sheet-title">Edit Hostel Information</h2>' +
+    '<p class="sheet-sub">Changes are saved to your device</p></div>' +
+    '<button class="close-btn" data-action="close-sheet" aria-label="Close">' + icon('x',18) + '</button>' +
+  '</div>';
+
+  h += '<form id="hostel-edit-form" data-section="' + section + '">';
+  if(section === 'basic'){
+    h += '<div class="field"><label>Hostel Name</label><div class="input-wrap">' + icon('building',18) +
+      '<input name="name" type="text" value="' + esc(hs.name) + '"></div></div>';
+    h += '<div class="field"><label>Address</label><div class="input-wrap textarea">' +
+      '<textarea name="address">' + esc(hs.address) + '</textarea></div></div>';
+    h += '<div class="field"><label>Owner Name</label><div class="input-wrap">' + icon('user',18) +
+      '<input name="ownerName" type="text" value="' + esc(hs.ownerName) + '"></div></div>';
+    h += '<div class="field"><label>Contact Number</label><div class="input-wrap">' + icon('phone',18) +
+      '<input name="contact" type="tel" value="' + esc(hs.contact) + '"></div></div>';
+  } else if(section === 'details'){
+    h += '<div class="field"><label>Default Room Monthly Rent (&#8377;)</label><div class="input-wrap">' + icon('rupee',18) +
+      '<input name="defaultRoomRent" type="number" value="' + hs.defaultRoomRent + '"></div></div>';
+    h += '<div class="field"><label>Default Tenant Monthly Rent (&#8377;)</label><div class="input-wrap">' + icon('rupee',18) +
+      '<input name="defaultTenantRent" type="number" value="' + hs.defaultTenantRent + '"></div></div>';
+    h += '<div class="field"><label>Room Capacity</label><div class="input-wrap">' + icon('users',18) +
+      '<input name="roomCapacity" type="number" value="' + hs.roomCapacity + '" disabled></div>' +
+      '<div class="hint">Shared rooms support a maximum of 3 tenants.</div></div>';
+  } else {
+    h += '<div class="field"><label>Notes</label><div class="input-wrap textarea">' +
+      '<textarea name="notes">' + esc(hs.notes || '') + '</textarea></div></div>';
+  }
+  h += '<div class="btn-row" style="margin-top:8px">' +
+    '<button class="btn btn-ghost" type="button" data-action="close-sheet">Cancel</button>' +
+    '<button class="btn btn-primary" type="submit">' + icon('check',18) + ' Save Changes</button>' +
+  '</div></form>';
+
+  openSheet(h);
+}
+
+/* ----------------------------------------------------------------
+   31. EVENT HANDLING
+   ---------------------------------------------------------------- */
+document.addEventListener('click', function(e){
+  // Drawer backdrop
+  const backdrop = e.target.closest('.drawer-backdrop');
+  if(backdrop && !e.target.closest('.drawer')){
+    closeDrawer();
+    return;
+  }
+  const sheetBackdrop = e.target.closest('.sheet-backdrop');
+  if(sheetBackdrop && !e.target.closest('.sheet')){
+    closeSheet();
+    return;
+  }
+
+  const el = e.target.closest('[data-action]');
+  if(!el) return;
+  const action = el.dataset.action;
+
+  switch(action){
+    case 'noop': e.preventDefault(); break;
+
+    case 'open-drawer': openDrawer(); break;
+    case 'close-drawer': closeDrawer(); break;
+    case 'close-sheet': closeSheet(); break;
+    case 'back': back(); break;
+
+    case 'go': {
+      if(el.dataset.patch){
+        try{
+          const patch = JSON.parse(el.dataset.patch);
+          Object.keys(patch).forEach(function(k){ UI[k] = patch[k]; });
+        }catch(err){}
+      }
+      navigate(el.dataset.screen, { id: el.dataset.id });
+      break;
+    }
+
+    case 'filter': {
+      UI[el.dataset.group] = el.dataset.value;
+      render();
+      break;
+    }
+
+    case 'fin-tab': {
+      UI.finTab = el.dataset.value;
+      render();
+      break;
+    }
+
+    case 'fin-filter': {
+      const group = el.dataset.group;
+      if(group === 'finTenant'){
+        if(UI.finTenant === 'all'){
+          // cycle through tenants
+          openFinTenantPicker();
+        } else {
+          UI.finTenant = 'all'; render();
+        }
+      } else if(group === 'finRoom'){
+        if(UI.finRoom === 'all'){
+          openFinRoomPicker();
+        } else {
+          UI.finRoom = 'all'; render();
+        }
+      } else if(group === 'finStatus'){
+        const order = ['all','paid','partial','unpaid'];
+        const idx = order.indexOf(UI.finStatus);
+        UI.finStatus = order[(idx+1) % order.length];
+        render();
+      }
+      break;
+    }
+
+    case 'month': {
+      UI.month = shiftMonth(UI.month, parseInt(el.dataset.delta,10));
+      if(UI.screen === 'financial') render();
+      else render();
+      break;
+    }
+
+    // ---- Record payment ----
+    case 'open-payment': {
+      openPaymentSheet(el.dataset.id, UI.month, el.dataset.type || 'rent');
+      break;
+    }
+    case 'sheet-type': {
+      if(UI.sheet && UI.sheet.kind === 'payment'){
+        UI.sheet.type = el.dataset.value;
+        renderPaymentSheet();
+      }
+      break;
+    }
+    case 'save-payment': {
+      handleSavePayment(el.dataset.id);
+      break;
+    }
+
+    // ---- Reminders ----
+    case 'open-reminder': {
+      openReminderSheet([el.dataset.id], el.dataset.type);
+      break;
+    }
+    case 'open-bulk-reminder': {
+      const m = UI.month;
+      let ids;
+      if(el.dataset.type === 'electricity'){
+        ids = DB.tenants.filter(function(t){ return calculateElectricityDue(t, m) > 0; }).map(function(t){ return t.id; });
+      } else {
+        ids = DB.tenants.filter(function(t){ return tenantTotalDue(t, m) > 0; }).map(function(t){ return t.id; });
+      }
+      if(!ids.length){
+        showToast('No pending dues to remind', 'info');
+        break;
+      }
+      openReminderSheet(ids, el.dataset.type);
+      break;
+    }
+    case 'default-message': {
+      const ta = document.getElementById('reminder-message');
+      if(ta) ta.value = 'Your hostel payment is pending for ' + monthLabel(UI.month) + '. Please clear your due amount at the earliest. If you have already paid, kindly ignore this message.';
+      break;
+    }
+    case 'send-reminder': {
+      const ta = document.getElementById('reminder-message');
+      const msg = ta ? ta.value : '';
+      const s = UI.sheet;
+      if(s && s.kind === 'reminder'){
+        DB.reminders.push({
+          id:'reminder_' + Date.now(),
+          tenantIds: s.tenantIds.slice(),
+          month: UI.month,
+          message: msg,
+          sentAt: new Date().toISOString(),
+          simulated: true
+        });
+        saveData();
+        showToast('Reminder prepared for ' + s.tenantIds.length + ' tenant' + (s.tenantIds.length===1?'':'s'), 'success');
+      }
+      closeSheet();
+      break;
+    }
+
+    // ---- Electricity bill ----
+    case 'open-elec-bill': {
+      openElectricityBillSheet(el.dataset.id);
+      break;
+    }
+    case 'save-elec-bill': {
+      handleSaveElecBill(el.dataset.id);
+      break;
+    }
+
+    // ---- Complaints ----
+    case 'complaint-status': {
+      const c = getComplaint(el.dataset.id);
+      if(!c) break;
+      c.status = el.dataset.value;
+      saveData();
+      const labels = { 'open':'reopened', 'in-progress':'marked as in progress', 'resolved':'marked as resolved' };
+      showToast('Complaint ' + (labels[c.status] || 'updated'), c.status === 'resolved' ? 'success' : 'info');
+      render();
+      break;
+    }
+
+    // ---- Hostel info edit ----
+    case 'edit-hostel': {
+      openHostelEditSheet(el.dataset.section);
+      break;
+    }
+
+    // ---- Delete ----
+    case 'delete-tenant': {
+      const t = getTenant(el.dataset.id);
+      if(!t) break;
+      confirmDialog('Delete tenant?', 'This will remove ' + t.name + ' and cannot be undone. Payment records will be kept.', 'Delete', true)
+        .then(function(ok){
+          if(!ok) return;
+          DB.tenants = DB.tenants.filter(function(x){ return x.id !== t.id; });
+          DB.complaints = DB.complaints.filter(function(c){ return c.tenantId !== t.id; });
+          saveData();
+          showToast('Tenant deleted', 'success');
+          UI.screen = 'tenants';
+          render();
+        });
+      break;
+    }
+    case 'delete-room': {
+      const r = getRoom(el.dataset.id);
+      if(!r) break;
+      const occ = roomOccupants(r.id).length;
+      if(occ > 0){
+        showToast('Cannot delete a room with tenants', 'error');
+        break;
+      }
+      confirmDialog('Delete room?', 'Room ' + r.roomNumber + ' will be permanently removed.', 'Delete', true)
+        .then(function(ok){
+          if(!ok) return;
+          DB.rooms = DB.rooms.filter(function(x){ return x.id !== r.id; });
+          DB.electricity = DB.electricity.filter(function(x){ return x.roomId !== r.id; });
+          saveData();
+          showToast('Room deleted', 'success');
+          UI.screen = 'rooms';
+          render();
+        });
+      break;
+    }
+
+    // ---- Logout ----
+    case 'logout': {
+      confirmDialog('Logout?', 'You will need to sign in again to access your hostel.', 'Logout', true)
+        .then(function(ok){
+          if(!ok) return;
+          closeDrawer();
+          clearAuth();
+          render();
+          showToast('Signed out', 'info');
+        });
+      break;
+    }
+
+    default: break;
+  }
+});
+
+/* ---- Search inputs ---- */
+document.addEventListener('input', function(e){
+  const key = e.target.dataset.search;
+  if(key){
+    UI[key] = e.target.value;
+    const pos = e.target.selectionStart;
+    const val = e.target.value;
+    render();
+    const again = document.querySelector('[data-search="' + key + '"]');
+    if(again){ again.focus(); try{ again.setSelectionRange(pos,pos); }catch(err){} }
+    return;
+  }
+  if(e.target.id === 'pay-amount'){
+    const due = parseFloat(e.target.dataset.due) || 0;
+    const amt = parseFloat(e.target.value) || 0;
+    const rem = document.getElementById('pay-remaining');
+    if(rem){
+      const val = Math.max(0, r2(due - amt));
+      rem.textContent = money(val);
+      rem.style.color = amt > due ? 'var(--red)' : 'var(--green)';
+    }
+  }
+  if(e.target.id === 'bill-amount'){
+    const s = UI.sheet;
+    if(s && s.kind === 'elec-bill'){
+      const occ = roomOccupants(s.roomId).length;
+      const val = parseFloat(e.target.value) || 0;
+      const shareEl = document.getElementById('bill-share');
+      if(shareEl) shareEl.textContent = occ ? money(val / occ) : money(0);
+    }
+  }
+});
+
+/* ---- Select change for month in payment sheet ---- */
+document.addEventListener('change', function(e){
+  if(e.target.id === 'pay-month' && UI.sheet && UI.sheet.kind === 'payment'){
+    UI.sheet.month = e.target.value;
+    renderPaymentSheet();
+  }
+  if(e.target.id === 'tf-room'){
+    const t = UI.sheet;
+    // no-op; handled at submit
+  }
+});
+
+/* ---- Form submissions ---- */
+document.addEventListener('submit', function(e){
+  const form = e.target;
+
+  /* LOGIN */
+  if(form.id === 'login-form'){
+    e.preventDefault();
+    const input = document.getElementById('login-phone');
+    const err = document.getElementById('login-err');
+    const digits = (input.value || '').replace(/\D/g,'');
+    if(digits.length !== 10){
+      err.textContent = 'Enter a valid 10-digit mobile number.';
+      err.style.display = 'block';
+      input.focus();
+      return;
+    }
+    err.style.display = 'none';
+    const btn = document.getElementById('login-btn');
+    btn.innerHTML = 'Signing in...';
+    btn.disabled = true;
+    setTimeout(function(){
+      session = { authed:true, phone:'+91 ' + digits };
+      saveAuth();
+      UI.screen = 'home';
+      UI.stack = [];
+      render();
+      showToast('Welcome back to HS Height', 'success');
+    }, 500);
+    return;
+  }
+
+  /* TENANT FORM */
+  if(form.id === 'tenant-form'){
+    e.preventDefault();
+    handleTenantSubmit(form);
+    return;
+  }
+
+  /* ROOM FORM */
+  if(form.id === 'room-form'){
+    e.preventDefault();
+    handleRoomSubmit(form);
+    return;
+  }
+
+  /* COMPLAINT FORM */
+  if(form.id === 'complaint-form'){
+    e.preventDefault();
+    const title = document.getElementById('cf-title').value;
+    const tenantId = document.getElementById('cf-tenant').value;
+    const desc = document.getElementById('cf-desc').value.trim();
+    const errEl = document.getElementById('complaint-form-err');
+    if(!desc){
+      errEl.textContent = 'Please describe the issue.';
+      errEl.style.display = 'block';
+      return;
+    }
+    const t = getTenant(tenantId);
+    const num = 13 + DB.complaints.length;
+    const c = {
+      id: 'C-' + String(num).padStart(3,'0'),
+      title: title,
+      tenantId: tenantId,
+      roomId: t ? t.roomId : null,
+      description: desc,
+      status: 'open',
+      createdAt: '2026-10-15T13:00:00',
+      icon: 'wrench',
+      tone: 'red'
+    };
+    DB.complaints.push(c);
+    saveData();
+    showToast('Complaint submitted successfully', 'success');
+    navigate('complaint-details', { id: c.id });
+    return;
+  }
+
+  /* ADMIN PROFILE */
+  if(form.id === 'admin-form'){
+    e.preventDefault();
+    const name = document.getElementById('af-name').value.trim();
+    const phoneDigits = (document.getElementById('af-phone').value || '').replace(/\D/g,'');
+    const email = document.getElementById('af-email').value.trim();
+    const errEl = document.getElementById('admin-form-err');
+    if(!name){ errEl.textContent = 'Enter admin name.'; errEl.style.display='block'; return; }
+    if(phoneDigits.length !== 10){ errEl.textContent = 'Enter a valid 10-digit mobile number.'; errEl.style.display='block'; return; }
+    errEl.style.display = 'none';
+    DB.admin.name = name;
+    DB.admin.phone = '+91 ' + phoneDigits;
+    DB.admin.email = email;
+    saveData();
+    showToast('Admin profile updated', 'success');
+    render();
+    return;
+  }
+
+  /* HOSTEL EDIT */
+  if(form.id === 'hostel-edit-form'){
+    e.preventDefault();
+    const section = form.dataset.section;
+    const fd = new FormData(form);
+    if(section === 'basic'){
+      DB.hostel.name = (fd.get('name') || '').toString().trim() || DB.hostel.name;
+      DB.hostel.address = (fd.get('address') || '').toString();
+      DB.hostel.ownerName = (fd.get('ownerName') || '').toString().trim();
+      DB.hostel.contact = (fd.get('contact') || '').toString().trim();
+    } else if(section === 'details'){
+      const rr = parseFloat(fd.get('defaultRoomRent'));
+      const tr = parseFloat(fd.get('defaultTenantRent'));
+      if(!isNaN(rr) && rr > 0) DB.hostel.defaultRoomRent = rr;
+      if(!isNaN(tr) && tr > 0) DB.hostel.defaultTenantRent = tr;
+    } else {
+      DB.hostel.notes = (fd.get('notes') || '').toString();
+    }
+    saveData();
+    closeSheet();
+    showToast('Hostel information updated', 'success');
+    render();
+    return;
+  }
+});
+
+/* ---- Tenant submit ---- */
+function handleTenantSubmit(form){
+  const mode = form.dataset.mode;
+  const id = form.dataset.id;
+  const errEl = document.getElementById('tenant-form-err');
+  const name = document.getElementById('tf-name').value.trim();
+  const phoneDigits = (document.getElementById('tf-phone').value || '').replace(/\D/g,'');
+  const roomId = document.getElementById('tf-room').value;
+  const rent = parseFloat(document.getElementById('tf-rent').value);
+  const joining = document.getElementById('tf-join').value;
+
+  function fail(msg){ errEl.textContent = msg; errEl.style.display = 'block'; window.scrollTo(0,0); }
+
+  if(!name) return fail('Please enter the full name.');
+  if(phoneDigits.length !== 10) return fail('Enter a valid 10-digit mobile number.');
+  if(!roomId) return fail('Please select a room number.');
+  if(isNaN(rent) || rent <= 0) return fail('Enter a valid rent amount.');
+  if(!joining) return fail('Please select the date of joining.');
+
+  const room = getRoom(roomId);
+  if(!room) return fail('Selected room was not found.');
+
+  const occ = roomOccupants(roomId);
+  const isEditingSameRoom = mode === 'edit' && getTenant(id) && getTenant(id).roomId === roomId;
+
+  if(!isEditingSameRoom && occ.length >= room.capacity){
+    return fail('This room is already full. Maximum occupancy is 3 tenants.');
+  }
+
+  errEl.style.display = 'none';
+
+  if(mode === 'edit'){
+    const t = getTenant(id);
+    if(!t) return;
+    const oldRoomId = t.roomId;
+    t.name = name;
+    t.phone = '+91 ' + phoneDigits;
+    t.roomId = roomId;
+    t.monthlyRent = rent;
+    t.joiningDate = joining;
+    // Keep complaints room in sync
+    DB.complaints.forEach(function(c){ if(c.tenantId === t.id) c.roomId = roomId; });
+    saveData();
+    showToast('Tenant updated successfully', 'success');
+    navigate('tenant-details', { id: t.id }, { replace:true });
+  } else {
+    const newId = 'tenant_' + Date.now();
+    const t = {
+      id: newId,
+      name: name,
+      phone: '+91 ' + phoneDigits,
+      roomId: roomId,
+      monthlyRent: rent,
+      joiningDate: joining
+    };
+    DB.tenants.push(t);
+    saveData();
+    showToast('Tenant added successfully', 'success');
+    navigate('tenant-details', { id: newId }, { replace:true });
+  }
+  render();
+}
+
+/* ---- Room submit ---- */
+function handleRoomSubmit(form){
+  const mode = form.dataset.mode;
+  const id = form.dataset.id;
+  const errEl = document.getElementById('room-form-err');
+  const num = document.getElementById('rf-number').value.trim();
+  const capacity = parseInt(document.getElementById('rf-capacity').value, 10);
+  const roomRent = parseFloat(document.getElementById('rf-room-rent').value);
+  const tenantRent = parseFloat(document.getElementById('rf-tenant-rent').value);
+  const type = document.getElementById('rf-type').value;
+
+  function fail(msg){ errEl.textContent = msg; errEl.style.display = 'block'; window.scrollTo(0,0); }
+
+  if(!num) return fail('Please enter a room number.');
+  if(isNaN(roomRent) || roomRent <= 0) return fail('Enter a valid room rent amount.');
+  if(isNaN(tenantRent) || tenantRent <= 0) return fail('Enter a valid tenant rent amount.');
+  if(capacity > 3) return fail('Maximum occupancy is 3 tenants.');
+
+  const dup = DB.rooms.find(function(r){ return r.roomNumber === num && r.id !== id; });
+  if(dup) return fail('A room with this number already exists.');
+
+  errEl.style.display = 'none';
+
+  if(mode === 'edit'){
+    const r = getRoom(id);
+    if(!r) return;
+    if(capacity < roomOccupants(r.id).length){
+      return fail('Occupancy cannot be less than the current number of tenants.');
+    }
+    r.roomNumber = num;
+    r.capacity = capacity;
+    r.monthlyRent = roomRent;
+    r.type = type;
+    saveData();
+    showToast('Room updated successfully', 'success');
+    navigate('room-details', { id: r.id }, { replace:true });
+  } else {
+    const newId = 'room_' + num + '_' + Date.now();
+    const r = { id:newId, roomNumber:num, capacity:capacity, type:type, monthlyRent:roomRent };
+    DB.rooms.push(r);
+    saveData();
+    showToast('Room added successfully', 'success');
+    navigate('room-details', { id: newId }, { replace:true });
+  }
+  render();
+}
+
+/* ---- Save payment ---- */
+function handleSavePayment(tenantId){
+  const s = UI.sheet;
+  if(!s || s.kind !== 'payment') return;
+  const t = getTenant(tenantId);
+  if(!t) return;
+  const m = s.month;
+  const type = s.type;
+  const amount = parseFloat(document.getElementById('pay-amount').value);
+  const date = document.getElementById('pay-date').value;
+  const mode = document.getElementById('pay-mode').value;
+  const note = document.getElementById('pay-note').value.trim();
+
+  const due = type === 'rent' ? calculateRentDue(t, m) : calculateElectricityDue(t, m);
+
+  if(isNaN(amount) || amount <= 0){
+    showToast('Enter a valid payment amount', 'error');
+    return;
+  }
+  if(amount > due + 0.009){
+    showToast('Payment cannot exceed the remaining due amount of ' + money(due), 'error');
+    return;
+  }
+  if(!date){
+    showToast('Please select the payment date', 'error');
+    return;
+  }
+
+  DB.payments.push({
+    id: 'payment_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+    tenantId: t.id,
+    roomId: t.roomId,
+    type: type,
+    month: m,
+    amount: r2(amount),
+    date: date,
+    mode: mode,
+    note: note
+  });
+  saveData();
+  closeSheet();
+  showToast('Payment recorded successfully', 'success');
+  render();
+}
+
+/* ---- Save electricity bill ---- */
+function handleSaveElecBill(roomId){
+  const input = document.getElementById('bill-amount');
+  const errEl = document.getElementById('bill-err');
+  const val = parseFloat(input.value);
+  if(isNaN(val) || val < 0){
+    errEl.textContent = 'Enter a valid electricity bill amount.';
+    errEl.style.display = 'block';
+    return;
+  }
+  const m = UI.month;
+  let rec = elecRecord(roomId, m);
+  if(rec){
+    rec.totalBill = r2(val);
+  } else {
+    const r = getRoom(roomId);
+    DB.electricity.push({
+      id: 'electricity_' + (r ? r.roomNumber : roomId) + '_' + m.replace('-','_'),
+      roomId: roomId,
+      month: m,
+      totalBill: r2(val)
+    });
+  }
+  saveData();
+  closeSheet();
+  showToast('Electricity bill updated successfully', 'success');
+  render();
+}
+
+/* ---- Financial filters: simple pickers ---- */
+function openFinTenantPicker(){
+  let h = '<div class="sheet-head"><div><h2 class="sheet-title">Filter by Tenant</h2>' +
+    '<p class="sheet-sub">Choose a tenant</p></div>' +
+    '<button class="close-btn" data-action="close-sheet">' + icon('x',18) + '</button></div>';
+  h += '<div class="list" style="max-height:60dvh;overflow-y:auto">';
+  h += '<button class="row" data-action="set-fin" data-group="finTenant" data-value="all"><div class="row-main"><div class="row-title">All Tenants</div></div></button>';
+  DB.tenants.forEach(function(t){
+    const room = getRoom(t.roomId);
+    h += '<button class="row" data-action="set-fin" data-group="finTenant" data-value="' + t.id + '">' +
+      avatar(t.name,'sm') + '<div class="row-main"><div class="row-title">' + esc(t.name) + '</div>' +
+      '<div class="row-sub">Room ' + esc(room?room.roomNumber:'-') + '</div></div></button>';
+  });
+  h += '</div>';
+  UI.sheet = { kind:'picker' };
+  openSheet(h);
+}
+function openFinRoomPicker(){
+  let h = '<div class="sheet-head"><div><h2 class="sheet-title">Filter by Room</h2>' +
+    '<p class="sheet-sub">Choose a room</p></div>' +
+    '<button class="close-btn" data-action="close-sheet">' + icon('x',18) + '</button></div>';
+  h += '<div class="list" style="max-height:60dvh;overflow-y:auto">';
+  h += '<button class="row" data-action="set-fin" data-group="finRoom" data-value="all"><div class="row-main"><div class="row-title">All Rooms</div></div></button>';
+  DB.rooms.forEach(function(r){
+    h += '<button class="row" data-action="set-fin" data-group="finRoom" data-value="' + r.id + '">' +
+      '<div class="stat-icon bg-blue" style="width:38px;height:38px;margin:0">' + icon('bed',17) + '</div>' +
+      '<div class="row-main"><div class="row-title">Room ' + esc(r.roomNumber) + '</div>' +
+      '<div class="row-sub">' + roomOccupants(r.id).length + ' / ' + r.capacity + ' occupied</div></div></button>';
+  });
+  h += '</div>';
+  UI.sheet = { kind:'picker' };
+  openSheet(h);
+}
+document.addEventListener('click', function(e){
+  const el = e.target.closest('[data-action="set-fin"]');
+  if(!el) return;
+  UI[el.dataset.group] = el.dataset.value;
+  closeSheet();
+  render();
+});
+
+/* ---- Export CSV ---- */
+document.addEventListener('click', function(e){
+  const el = e.target.closest('[data-action="export"]');
+  if(!el) return;
+  exportCSV();
+});
+
+function exportCSV(){
+  const m = UI.month;
+  const type = UI.finTab === 'rent' ? 'rent' : 'electricity';
+  let rows = DB.payments.filter(function(p){ return p.month === m && p.type === type; });
+
+  if(UI.finTenant !== 'all') rows = rows.filter(function(p){ return p.tenantId === UI.finTenant; });
+  if(UI.finRoom !== 'all') rows = rows.filter(function(p){ return p.roomId === UI.finRoom; });
+  rows = rows.sort(function(a,b){ return a.date.localeCompare(b.date); });
+
+  const header = ['Payment ID','Date','Tenant','Phone','Room','Type','Month','Amount','Payment Mode','Note'];
+  const lines = [header];
+
+  rows.forEach(function(p){
+    const t = getTenant(p.tenantId);
+    const room = getRoom(p.roomId);
+    lines.push([
+      p.id,
+      p.date,
+      t ? t.name : '',
+      t ? t.phone : '',
+      room ? room.roomNumber : '',
+      p.type,
+      monthLabel(p.month),
+      p.amount,
+      p.mode,
+      p.note || ''
+    ]);
+  });
+
+  // Summary rows
+  const total = rows.reduce(function(s,p){ return s + p.amount; }, 0);
+  lines.push([]);
+  lines.push(['','','','','','','TOTAL', r2(total),'','']);
+
+  const csv = lines.map(function(r){
+    return r.map(function(c){
+      const v = String(c == null ? '' : c);
+      return '"' + v.replace(/"/g,'""') + '"';
+    }).join(',');
+  }).join('\r\n');
+
+  const blob = new Blob(['\uFEFF' + csv], { type:'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'hs-height-' + type + '-' + m + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+
+  showToast('CSV exported (' + rows.length + ' records)', 'success');
+}
+
+/* ----------------------------------------------------------------
+   32. INIT
+   ---------------------------------------------------------------- */
+function init(){
+  loadAuth();
+
+  let data = loadData();
+  if(!data){
+    data = seedData();
+    DB = data;
+    saveData();
+  } else {
+    DB = data;
+    // Forward-compatible defaults
+    DB.hostel = DB.hostel || {};
+    DB.admin = DB.admin || { name:'Admin', phone:'+91 98765 43210', email:'' };
+    DB.reminders = DB.reminders || [];
+  }
+
+  render();
+}
+
+init();
+</script>
 </body>
 </html>
