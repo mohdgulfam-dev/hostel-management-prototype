@@ -1,4 +1,4 @@
-const CACHE_NAME = "hs-height-v2";
+const CACHE_NAME = "hs-height-v3";
 
 const APP_SHELL = [
   "./",
@@ -11,6 +11,7 @@ const APP_SHELL = [
   "./icons/icon-512.png"
 ];
 
+// Install
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -19,6 +20,7 @@ self.addEventListener("install", (event) => {
   );
 });
 
+// Activate
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys()
@@ -33,42 +35,106 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+// Fetch
 self.addEventListener("fetch", (event) => {
   const request = event.request;
 
-  // The Cache API should only handle GET requests.
+  // Only handle GET requests
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
 
-  // Keep external resources on the network; this app shell has no
-  // external runtime dependency that needs to be cached.
+  // Don't interfere with external resources
   if (url.origin !== self.location.origin) return;
 
-  event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) return cachedResponse;
-
-      return fetch(request)
+  /*
+   * HTML/navigation:
+   * Always try the network first.
+   * This makes new deployments appear as soon as the
+   * browser can reach the server.
+   */
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request, { cache: "no-store" })
         .then((networkResponse) => {
-          // Cache successful same-origin responses for future offline use.
-          if (networkResponse.ok && networkResponse.type === "basic") {
-            const copy = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          }
           return networkResponse;
         })
         .catch(() => {
-          // For navigation requests, return the cached app shell so the
-          // installed PWA can still open when offline.
-          if (request.mode === "navigate") {
-            return caches.match("./index.html");
+          return caches.match("./index.html");
+        })
+    );
+
+    return;
+  }
+
+  /*
+   * JavaScript and CSS:
+   * Network first.
+   * If online, always get the latest version.
+   * If offline, use the cached version.
+   */
+  if (
+    url.pathname.endsWith(".js") ||
+    url.pathname.endsWith(".css")
+  ) {
+    event.respondWith(
+      fetch(request, { cache: "no-store" })
+        .then((networkResponse) => {
+
+          if (networkResponse.ok) {
+            const copy = networkResponse.clone();
+
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                cache.put(request, copy);
+              });
           }
-          return new Response("", {
-            status: 503,
-            statusText: "Offline"
+
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match(request);
+        })
+    );
+
+    return;
+  }
+
+  /*
+   * Other same-origin resources:
+   * Cache first, then network.
+   */
+  event.respondWith(
+    caches.match(request)
+      .then((cachedResponse) => {
+
+        if (cachedResponse) {
+          return cachedResponse;
+        }
+
+        return fetch(request)
+          .then((networkResponse) => {
+
+            if (
+              networkResponse.ok &&
+              networkResponse.type === "basic"
+            ) {
+              const copy = networkResponse.clone();
+
+              caches.open(CACHE_NAME)
+                .then((cache) => {
+                  cache.put(request, copy);
+                });
+            }
+
+            return networkResponse;
           });
+      })
+      .catch(() => {
+        return new Response("", {
+          status: 503,
+          statusText: "Offline"
         });
-    })
+      })
   );
 });
