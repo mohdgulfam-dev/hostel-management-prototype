@@ -4,6 +4,13 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
 <meta name="theme-color" content="#0D63F3" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="HS Height" />
+<link rel="manifest" href="./manifest.json" />
+<link rel="icon" type="image/png" href="./icons/icon-192.png" />
+<link rel="apple-touch-icon" href="./icons/icon-192.png" />
 <title>HS Height — Hostel Management</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -3106,6 +3113,16 @@ function init(){
 }
 
 init();
+</script>
+<script>
+/* ---------- PWA: Service Worker registration ---------- */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('./sw.js')
+      .then(function (reg) { console.log('Service worker registered:', reg.scope); })
+      .catch(function (err) { console.error('Service worker registration failed:', err); });
+  });
+}
 </script>
 </body>
 </html>
