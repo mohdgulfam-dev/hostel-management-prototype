@@ -35,10 +35,7 @@ This project is currently a **prototype** created for presentation, pitching, an
 ```text
 hostel-management-prototype/
 │
-├── index.html          # Main application page
-├── styles.css          # Application styling
-├── app.js              # Main application logic
-├── data.js             # Prototype data
+├── index.html          # Main application page 
 ├── manifest.json       # PWA configuration
 ├── sw.js               # Service worker
 └── README.md           # Project documentation
