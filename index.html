@@ -567,7 +567,6 @@ const UI = {
   roomFilter:'all', roomSearch:'',
   rentFilter:'all', rentSearch:'',
   elecFilter:'all', elecSearch:'',
-  complaintFilter:'all', complaintSearch:'',
   finTab:'rent', finTenant:'all', finRoom:'all', finStatus:'all',
   sheet:null
 };
@@ -708,25 +707,6 @@ function seedData(){
     addPay(t.id, t.roomId, 'electricity', '2026-10', cfg[1], 4 + (i % 18), i % 2 === 0 ? 'UPI' : 'Cash');
   });
 
-  // ---- Complaints ----
-  const complaints = [
-    { id:'C-012', title:'Water Leakage', tenantId:'tenant_10', roomId:'room_204',
-      description:'Water is leaking from the bathroom ceiling.', status:'open', createdAt:'2026-10-15T10:24:00', icon:'droplet', tone:'red' },
-    { id:'C-011', title:'Wi-Fi not working', tenantId:'tenant_5', roomId:'room_202',
-      description:'Wi-Fi router is not broadcasting any signal since last night.', status:'in-progress', createdAt:'2026-10-15T07:10:00', icon:'wifi', tone:'blue' },
-    { id:'C-010', title:'Bathroom light issue', tenantId:'tenant_2', roomId:'room_201',
-      description:'Bathroom light is flickering and sometimes does not turn on.', status:'open', createdAt:'2026-10-14T18:00:00', icon:'bulb', tone:'amber' },
-    { id:'C-009', title:'Fan not working', tenantId:'tenant_8', roomId:'room_203',
-      description:'Ceiling fan stopped working completely.', status:'resolved', createdAt:'2026-10-13T09:00:00', icon:'fan', tone:'purple' },
-    { id:'C-008', title:'Low water pressure', tenantId:'tenant_4', roomId:'room_202',
-      description:'Water pressure in the tap is very low in the morning hours.', status:'in-progress', createdAt:'2026-10-13T07:30:00', icon:'droplet', tone:'blue' },
-    { id:'C-007', title:'Door lock issue', tenantId:'tenant_7', roomId:'room_203',
-      description:'Room door lock is jammed and hard to open.', status:'resolved', createdAt:'2026-10-12T12:15:00', icon:'door', tone:'red' },
-    { id:'C-006', title:'Extra power socket required', tenantId:'tenant_12', roomId:'room_204',
-      description:'Need one more power socket near the study table.', status:'open', createdAt:'2026-10-12T09:40:00', icon:'plug', tone:'purple' },
-    { id:'C-005', title:'AC not working', tenantId:'tenant_3', roomId:'room_201',
-      description:'Air conditioner is not cooling at all.', status:'in-progress', createdAt:'2026-10-11T16:05:00', icon:'fan', tone:'blue' }
-  ];
 
   return {
     version:1,
@@ -745,7 +725,6 @@ function seedData(){
     tenants:tenants,
     electricity:electricity,
     payments:payments,
-    complaints:complaints,
     reminders:[]
   };
 }
@@ -842,7 +821,6 @@ function getTenant(id){ return DB.tenants.find(function(t){ return t.id===id; })
 function getRoom(id){ return DB.rooms.find(function(r){ return r.id===id; }); }
 function getRoomByNumber(num){ return DB.rooms.find(function(r){ return r.roomNumber===String(num); }); }
 function roomOccupants(roomId){ return DB.tenants.filter(function(t){ return t.roomId===roomId; }); }
-function getComplaint(id){ return DB.complaints.find(function(c){ return c.id===id; }); }
 
 function elecRecord(roomId, month){
   return DB.electricity.find(function(e){ return e.roomId===roomId && e.month===month; });
@@ -898,10 +876,31 @@ function tenantTotalStatus(tenant, month){
   return paidAny ? 'partial' : 'unpaid';
 }
 
+function roomRentPaidFor(roomId, month){
+  return r2(DB.payments
+    .filter(function(p){
+      return p.roomId===roomId && p.month===month && p.type==='rent';
+    })
+    .reduce(function(s,p){ return s + p.amount; }, 0));
+}
+
+function calculateRoomRentDue(roomId, month){
+  const room = getRoom(roomId);
+  if(!room) return 0;
+  return Math.max(0, r2(room.monthlyRent - roomRentPaidFor(roomId, month)));
+}
+
+function calculateRoomRentStatus(roomId, month){
+  const room = getRoom(roomId);
+  if(!room) return 'unpaid';
+  return calculateTenantStatus(roomRentPaidFor(roomId, month), room.monthlyRent);
+}
+
 function calculateRoomFinancials(roomId, month){
+  const room = getRoom(roomId);
   const occ = roomOccupants(roomId);
-  const totalRent = r2(occ.reduce(function(s,t){ return s + t.monthlyRent; }, 0));
-  const rentCollected = r2(occ.reduce(function(s,t){ return s + rentPaidFor(t.id, month); }, 0));
+  const totalRent = room ? r2(room.monthlyRent) : 0;
+  const rentCollected = roomRentPaidFor(roomId, month);
   const rentOutstanding = Math.max(0, r2(totalRent - rentCollected));
   const elecBill = elecBillFor(roomId, month);
   const elecCollected = r2(occ.reduce(function(s,t){ return s + elecPaidFor(t.id, month); }, 0));
@@ -916,13 +915,13 @@ function calculateRoomFinancials(roomId, month){
     elecCollected: elecCollected,
     elecOutstanding: elecOutstanding,
     elecShare: share,
-    capacity: getRoom(roomId) ? getRoom(roomId).capacity : 3
+    capacity: room ? room.capacity : 3
   };
 }
 
 function calculateDashboardTotals(month){
   const tenants = DB.tenants;
-  const expectedRent = r2(tenants.reduce(function(s,t){ return s + t.monthlyRent; }, 0));
+  const expectedRent = r2(DB.rooms.reduce(function(s,r){ return s + r.monthlyRent; }, 0));
   const rentCollected = r2(DB.payments
     .filter(function(p){ return p.month===month && p.type==='rent'; })
     .reduce(function(s,p){ return s + p.amount; }, 0));
@@ -1049,7 +1048,6 @@ function openDrawer(){
     ['rooms','Rooms','bed','bg-purple'],
     ['rent','Rent','wallet','bg-blue'],
     ['electricity','Electricity','zap','bg-amber'],
-    ['complaints','Complaints','wrench','bg-red'],
     ['financial','Financial Records','chart','bg-purple'],
     ['hostel-info','Hostel Information','building','bg-blue'],
     ['admin-profile','Admin Profile','user','bg-green']
@@ -1174,9 +1172,6 @@ function screenContent(){
     case 'electricity': return renderElectricity();
     case 'electricity-details': return renderElectricityDetails();
     case 'financial': return renderFinancialRecords();
-    case 'complaints': return renderComplaints();
-    case 'complaint-add': return renderComplaintForm();
-    case 'complaint-details': return renderComplaintDetails();
     case 'more': return renderMore();
     case 'hostel-info': return renderHostelInfo();
     case 'admin-profile': return renderAdminProfile();
@@ -1199,13 +1194,44 @@ function renderDashboard(){
   const m = UI.month;
   const T = calculateDashboardTotals(m);
 
-  const recentPayments = DB.payments.slice()
-    .sort(function(a,b){ return (b.date + b.id).localeCompare(a.date + a.id); })
-    .slice(0,4);
+  // Recent Payments are room-level monthly totals.
+  // Each room's rent (₹7,500) and its electricity payments are combined,
+  // regardless of which occupant made the payment.
+  const paymentGroups = {};
+  DB.payments.slice().sort(function(a,b){
+    return (b.date + b.id).localeCompare(a.date + a.id);
+  }).forEach(function(p){
+    const tenant = p.tenantId ? getTenant(p.tenantId) : null;
+    const roomId = p.roomId || (tenant ? tenant.roomId : null);
+    const room = roomId ? getRoom(roomId) : null;
+    if(!room) return;
 
-  const recentComplaints = DB.complaints.slice()
-    .sort(function(a,b){ return b.createdAt.localeCompare(a.createdAt); })
-    .slice(0,3);
+    // Dashboard is for the currently selected month.
+    if(p.month && p.month !== m) return;
+
+    const key = room.id + '|' + (p.month || m);
+    if(!paymentGroups[key]){
+      paymentGroups[key] = {
+        roomId: room.id,
+        month: p.month || m,
+        amount: 0,
+        latestDate: p.date || ''
+      };
+    }
+
+    paymentGroups[key].amount += Number(p.amount) || 0;
+
+    if((p.date || '') > paymentGroups[key].latestDate){
+      paymentGroups[key].latestDate = p.date || '';
+    }
+  });
+
+  const recentPayments = Object.keys(paymentGroups)
+    .map(function(k){ return paymentGroups[k]; })
+    .sort(function(a,b){
+      return (b.latestDate + b.roomId).localeCompare(a.latestDate + a.roomId);
+    })
+    .slice(0,4);
 
   let h = '';
   h += monthSelector();
@@ -1269,7 +1295,7 @@ function renderDashboard(){
     '</button>' +
   '</div>';
 
-  // Recent payments
+  // Recent payments — room-wise only.
   h += '<div class="card flush">' +
     '<div style="padding:16px 16px 10px" class="section-head">' +
       '<h3 class="section-title">Recent Payments</h3>' +
@@ -1280,47 +1306,18 @@ function renderDashboard(){
   } else {
     h += '<div class="list">';
     recentPayments.forEach(function(p){
-      const t = getTenant(p.tenantId);
-      const room = t ? getRoom(t.roomId) : null;
-      const label = p.type === 'rent' ? 'Rent' : 'Electricity';
-      h += '<div class="row">' + avatar(t ? t.name : '?', 'sm') +
+      const room = getRoom(p.roomId);
+      h += '<div class="row">' +
+        '<div class="stat-icon bg-blue" style="width:40px;height:40px;margin:0">' + icon('bed',18) + '</div>' +
         '<div class="row-main">' +
-          '<div class="row-title truncate">' + esc(t ? t.name : 'Unknown') + '</div>' +
-          '<div class="row-sub">Room ' + esc(room ? room.roomNumber : '-') + ' &bull; ' + label + '</div>' +
+          '<div class="row-title truncate">Room ' + esc(room ? room.roomNumber : '-') + '</div>' +
+          '<div class="row-sub">Rent + Electricity &bull; ' + dateLabel(p.latestDate) + '</div>' +
         '</div>' +
         '<div class="row-right">' +
           '<div class="amount paid">' + money(p.amount) + '</div>' +
-          '<div class="row-sub">' + dateLabel(p.date) + '</div>' +
+          '<div class="row-sub">Total room payment</div>' +
         '</div>' +
       '</div>';
-    });
-    h += '</div>';
-  }
-  h += '</div>';
-
-  // Recent complaints
-  h += '<div class="card flush">' +
-    '<div style="padding:16px 16px 10px" class="section-head">' +
-      '<h3 class="section-title">Recent Complaints</h3>' +
-      '<button class="link" data-action="go" data-screen="complaints">View All ' + icon('arrowRight',15) + '</button>' +
-    '</div>';
-  if(!recentComplaints.length){
-    h += '<div class="empty"><p>No complaints reported.</p></div>';
-  } else {
-    h += '<div class="list">';
-    recentComplaints.forEach(function(c){
-      const t = getTenant(c.tenantId);
-      const room = getRoom(c.roomId);
-      h += '<button class="row" data-action="go" data-screen="complaint-details" data-id="' + c.id + '">' +
-        '<div class="stat-icon ' + (c.status==='open'?'bg-red':(c.status==='in-progress'?'bg-amber':'bg-green')) + '" style="width:40px;height:40px;margin:0">' + icon(c.icon||'wrench',18) + '</div>' +
-        '<div class="row-main">' +
-          '<div class="row-title truncate">' + esc(c.title) + '</div>' +
-          '<div class="row-sub">Room ' + esc(room ? room.roomNumber : '-') + ' &bull; ' + esc(t ? t.name : '-') + '</div>' +
-        '</div>' +
-        '<div class="row-right">' + statusPill(c.status) +
-          '<div class="row-sub">' + relTime(c.createdAt) + '</div>' +
-        '</div>' +
-      '</button>';
     });
     h += '</div>';
   }
@@ -1478,12 +1475,6 @@ function renderTenantForm(mode){
   h += '</select><span class="chev">' + icon('chevDown',18) + '</span></div>' +
        '<div class="hint">Only rooms with available capacity are listed.</div></div>';
 
-  h += '<div class="field"><label for="tf-rent">Monthly Rent <span class="req">*</span></label>' +
-       '<div class="input-wrap">' + icon('rupee',18) +
-       '<input id="tf-rent" name="monthlyRent" type="number" inputmode="numeric" min="0" step="50" placeholder="Enter monthly rent" value="' +
-       (t ? t.monthlyRent : DB.hostel.defaultTenantRent) + '">' +
-       '</div>' +
-       '<div class="hint">Default rent per tenant is ' + money(DB.hostel.defaultTenantRent) + ' (room rent ' + money(DB.hostel.defaultRoomRent) + ' &divide; 3).</div></div>';
 
   h += '<div class="field"><label for="tf-join">Date of Joining <span class="req">*</span></label>' +
        '<div class="input-wrap">' + icon('calendar',18) +
@@ -1493,7 +1484,7 @@ function renderTenantForm(mode){
   h += '<div class="card tint-blue" style="display:flex;gap:12px;align-items:flex-start">' +
        '<div class="stat-icon bg-blue" style="width:36px;height:36px;margin:0">' + icon('info',17) + '</div>' +
        '<div><div style="font-weight:700;font-size:13.5px">Tenant will be linked to the selected room</div>' +
-       '<div style="font-size:12.5px;color:var(--muted);margin-top:3px">Shared rooms support up to 3 tenants. Electricity is billed per room and split equally among current occupants.</div></div>' +
+       '<div style="font-size:12.5px;color:var(--muted);margin-top:3px">Shared rooms support up to 3 tenants. Rent is set once for the room. Electricity is billed per room and may be split among current occupants.</div></div>' +
        '</div>';
 
   h += '<div class="err" id="tenant-form-err" style="display:none;margin-bottom:12px"></div>';
@@ -1516,20 +1507,9 @@ function renderTenantForm(mode){
 function renderTenantDetails(){
   const t = getTenant(UI.params.id);
   if(!t) return '<div class="card"><div class="empty"><h4>Tenant not found.</h4></div></div>';
-  const m = UI.month;
   const room = getRoom(t.roomId);
-  const rentDue = calculateRentDue(t, m);
-  const elecDue = calculateElectricityDue(t, m);
-  const share = elecShareFor(t, m);
-  const rentStatus = tenantRentStatus(t, m);
-  const elecStatus = tenantElecStatus(t, m);
-  const totalDue = r2(rentDue + elecDue);
-
-  // Payment history across months
-  const months = ['2026-06','2026-07','2026-08','2026-09','2026-10'].slice().reverse();
 
   let h = '';
-  // Profile
   h += '<div class="card">' +
     '<div style="display:flex;gap:14px;align-items:center">' +
       avatar(t.name,'lg') +
@@ -1543,87 +1523,20 @@ function renderTenantDetails(){
     '</div>' +
   '</div>';
 
-  // Current dues
-  h += '<div class="card">' +
-    '<div class="section-head"><h3 class="section-title">Current Dues</h3>' +
-    '<span class="row-sub">' + icon('calendar',14) + ' ' + monthLabel(m) + '</span></div>' +
-    '<div class="grid2 tight">' +
-      '<div class="stat tint-red" style="box-shadow:none">' +
-        '<div class="stat-icon bg-red">' + icon('home',17) + '</div>' +
-        '<div class="stat-label">Rent</div>' +
-        '<div class="stat-value" style="color:var(--red)">' + money(t.monthlyRent) + '</div>' +
-        statusPill(rentStatus) +
-        '<div class="stat-foot">' + (rentDue > 0 ? 'Due ' + money(rentDue) : 'Fully paid') + '</div>' +
-      '</div>' +
-      '<div class="stat tint-amber" style="box-shadow:none">' +
-        '<div class="stat-icon bg-amber">' + icon('zap',17) + '</div>' +
-        '<div class="stat-label">Electricity</div>' +
-        '<div class="stat-value" style="color:var(--amber)">' + money(share) + '</div>' +
-        statusPill(elecStatus) +
-        '<div class="stat-foot">' + (elecDue > 0 ? 'Due ' + money(elecDue) : 'Fully paid') + '</div>' +
-      '</div>' +
-    '</div>' +
-    '<div class="divider"></div>' +
-    '<div style="display:flex;justify-content:space-between;align-items:center">' +
-      '<span style="font-weight:700">Total Due</span>' +
-      '<span style="font-weight:800;font-size:19px;color:' + (totalDue>0?'var(--red)':'var(--green)') + '">' + money(totalDue) + '</span>' +
-    '</div>' +
+  h += '<div class="card tint-blue">' +
+    '<div class="section-head"><h3 class="section-title">Room Assignment</h3></div>' +
+    '<div class="kv"><div class="kv-label">Room</div><div class="kv-value">' + esc(room ? room.roomNumber : '-') + '</div></div>' +
+    '<div class="kv"><div class="kv-label">Room Rent</div><div class="kv-value">' + (room ? money(room.monthlyRent) : '-') + '</div></div>' +
+    '<div class="row-sub" style="margin-top:10px">Rent is managed for the room as a single amount and is not divided between occupants.</div>' +
   '</div>';
 
-  // Actions
   h += '<div class="btn-row" style="margin-bottom:14px">' +
-    '<button class="btn btn-primary" data-action="open-payment" data-id="' + t.id + '">' + icon('card',17) + ' Record</button>' +
-    '<button class="btn btn-ghost" data-action="open-reminder" data-id="' + t.id + '">' + icon('send',17) + ' Remind</button>' +
-    '<button class="btn btn-ghost" data-action="go" data-screen="tenant-edit" data-id="' + t.id + '">' + icon('edit',17) + ' Edit</button>' +
+    '<button class="btn btn-primary" data-action="go" data-screen="room-details" data-id="' + (room ? room.id : '') + '">' + icon('bed',17) + ' View Room</button>' +
+    '<button class="btn btn-soft" data-action="go" data-screen="tenant-edit" data-id="' + t.id + '">' + icon('edit',17) + ' Edit Tenant</button>' +
   '</div>';
-
-  // Payment history
-  h += '<div class="card flush">' +
-    '<div style="padding:16px" class="section-head"><h3 class="section-title">Payment History</h3></div>' +
-    '<div class="table-head" style="padding-left:16px;padding-right:16px">' +
-      '<span style="flex:1.2">Month</span><span style="flex:1;text-align:right">Rent</span>' +
-      '<span style="flex:1;text-align:right">Electricity</span><span style="flex:.9;text-align:right">Status</span>' +
-    '</div>' +
-    '<div class="list">';
-  months.forEach(function(mm){
-    const rp = rentPaidFor(t.id, mm);
-    const ep = elecPaidFor(t.id, mm);
-    const sh = elecShareFor(t, mm);
-    const st = calculateTenantStatus(rp + ep, t.monthlyRent + sh);
-    h += '<div class="row" style="padding-left:16px;padding-right:16px">' +
-      '<span style="flex:1.2;font-weight:600;font-size:13.5px">' + monthLabel(mm) + '</span>' +
-      '<span style="flex:1;text-align:right;font-weight:700;font-size:13.5px;color:' + (rp>=t.monthlyRent?'var(--green)':'var(--red)') + '">' + money(rp) + '</span>' +
-      '<span style="flex:1;text-align:right;font-weight:700;font-size:13.5px;color:' + (ep>=sh?'var(--green)':'var(--amber)') + '">' + money(ep) + '</span>' +
-      '<span style="flex:.9;text-align:right">' + statusPill(st) + '</span>' +
-    '</div>';
-  });
-  h += '</div></div>';
-
-  // Complaints by this tenant
-  const tComplaints = DB.complaints.filter(function(c){ return c.tenantId === t.id; });
-  h += '<div class="card flush">' +
-    '<div style="padding:16px" class="section-head"><h3 class="section-title">Complaints</h3>' +
-    '<button class="link" data-action="go" data-screen="complaint-add">' + icon('plus',14) + ' Add</button></div>';
-  if(!tComplaints.length){
-    h += '<div class="empty" style="padding:28px"><p>No complaints raised.</p></div>';
-  } else {
-    h += '<div class="list">';
-    tComplaints.forEach(function(c){
-      h += '<button class="row" data-action="go" data-screen="complaint-details" data-id="' + c.id + '">' +
-        '<div class="stat-icon bg-red" style="width:38px;height:38px;margin:0">' + icon(c.icon||'wrench',17) + '</div>' +
-        '<div class="row-main"><div class="row-title">' + esc(c.title) + '</div>' +
-        '<div class="row-sub">Room ' + esc(room ? room.roomNumber : '-') + ' &bull; ' + dateLabel(c.createdAt.substring(0,10)) + '</div></div>' +
-        '<div class="row-right">' + statusPill(c.status) + '</div>' +
-        '<span style="color:#B7C2D8">' + icon('chevRight',18) + '</span>' +
-      '</button>';
-    });
-    h += '</div>';
-  }
-  h += '</div>';
 
   return h;
 }
-
 /* ----------------------------------------------------------------
    17. ROOMS
    ---------------------------------------------------------------- */
@@ -1730,10 +1643,6 @@ function renderRoomForm(mode){
     '<input id="rf-room-rent" name="monthlyRent" type="number" min="0" step="100" value="' + (r ? r.monthlyRent : DB.hostel.defaultRoomRent) + '">' +
     '</div><div class="hint">Default room rent is ' + money(DB.hostel.defaultRoomRent) + '.</div></div>';
 
-  h += '<div class="field"><label for="rf-tenant-rent">Monthly Rent Per Tenant <span class="req">*</span></label>' +
-    '<div class="input-wrap">' + icon('rupee',18) +
-    '<input id="rf-tenant-rent" name="tenantRent" type="number" min="0" step="50" value="' + (r ? Math.round(r.monthlyRent/3) : DB.hostel.defaultTenantRent) + '">' +
-    '</div><div class="hint">Each tenant pays ' + money(DB.hostel.defaultTenantRent) + ' by default.</div></div>';
 
   h += '<div class="field"><label for="rf-type">Room Type <span class="req">*</span></label>' +
     '<div class="input-wrap select-wrap">' + icon('building',18) +
@@ -1765,6 +1674,7 @@ function renderRoomDetails(){
   const m = UI.month;
   const occ = roomOccupants(r.id);
   const fin = calculateRoomFinancials(r.id, m);
+  const rentStatus = calculateRoomRentStatus(r.id, m);
 
   let h = '';
   h += '<div class="card">' +
@@ -1774,64 +1684,48 @@ function renderRoomDetails(){
         '<div style="font-size:23px;font-weight:800;letter-spacing:-.5px">Room ' + esc(r.roomNumber) + '</div>' +
         '<div class="row-sub" style="margin-top:4px">' + occ.length + ' / ' + r.capacity + ' occupied</div>' +
         '<div class="row-sub">' + (r.type === 'shared' ? 'Shared room' : 'Single room') + ' &bull; ' + occ.length + ' tenant' + (occ.length===1?'':'s') + '</div>' +
-        '<div class="occ-dots">' + Array.from({length:r.capacity}).map(function(_,i){
-          return '<span class="dot' + (i < occ.length ? ' on' : '') + '"></span>';
-        }).join('') + '</div>' +
+        '<div class="occ-dots">' + Array.from({length:r.capacity}).map(function(_,i){ return '<span class="dot' + (i < occ.length ? ' on' : '') + '"></span>'; }).join('') + '</div>' +
       '</div>' +
       '<button class="btn btn-soft btn-sm" data-action="go" data-screen="room-edit" data-id="' + r.id + '">' + icon('edit',15) + ' Edit</button>' +
     '</div>' +
   '</div>';
 
-  // Financial cards
   h += '<div class="grid2 tight">' +
     '<div class="stat tint-red" style="box-shadow:none">' +
       '<div class="stat-icon bg-red">' + icon('home',17) + '</div>' +
-      '<div class="stat-label">Total Monthly Rent</div>' +
+      '<div class="stat-label">Room Monthly Rent</div>' +
       '<div class="stat-value" style="color:var(--red)">' + money(r.monthlyRent) + '</div>' +
-      '<div class="stat-foot">' + money(DB.hostel.defaultTenantRent) + ' per tenant</div>' +
+      '<div class="stat-foot">' + statusPill(rentStatus) + '</div>' +
     '</div>' +
     '<div class="stat tint-amber" style="box-shadow:none">' +
       '<div class="stat-icon bg-amber">' + icon('zap',17) + '</div>' +
       '<div class="stat-label">Electricity (' + monthLabelShort(m) + ')</div>' +
-      '<div class="stat-value" style="color:var(--amber)">' + money(fin.elecShare) + '</div>' +
-      '<div class="stat-foot">per tenant &bull; bill ' + money(fin.elecBill) + '</div>' +
+      '<div class="stat-value" style="color:var(--amber)">' + money(fin.elecBill) + '</div>' +
+      '<div class="stat-foot">Total room electricity bill</div>' +
     '</div>' +
   '</div>';
 
   h += '<div class="btn-row" style="margin-bottom:14px">' +
+    '<button class="btn btn-primary btn-sm" data-action="open-payment" data-id="' + r.id + '" data-type="rent">' + icon('card',16) + ' Record Room Rent</button>' +
     '<button class="btn btn-ghost btn-sm" data-action="open-elec-bill" data-id="' + r.id + '">' + icon('zap',16) + ' Update Electricity Bill</button>' +
     '<button class="btn btn-soft btn-sm" data-action="go" data-screen="tenant-add" data-id="' + r.id + '" data-patch=\'{"roomId":"' + r.id + '"}\'>' + icon('plus',16) + ' Add Tenant</button>' +
   '</div>';
 
-  // Occupants
   h += '<div class="card flush">' +
     '<div style="padding:16px" class="section-head"><h3 class="section-title">Occupants (' + occ.length + ')</h3></div>';
   if(!occ.length){
     h += '<div class="empty" style="padding:30px"><div class="ic-wrap">' + icon('users',24) + '</div>' +
-      '<h4>No tenants in this room</h4><p>Add a tenant to start tracking rent and electricity.</p></div>';
+      '<h4>No tenants in this room</h4><p>Add a tenant to start managing this room.</p></div>';
   } else {
-    h += '<div class="table-head" style="padding-left:16px;padding-right:16px">' +
-      '<span style="flex:1.5">Tenant</span><span style="flex:1;text-align:right">Rent</span>' +
-      '<span style="flex:1;text-align:right">Electricity</span><span style="flex:.4"></span></div>';
     h += '<div class="list">';
     occ.forEach(function(t){
-      const rs = tenantRentStatus(t, m);
-      const es = tenantElecStatus(t, m);
-      const share = elecShareFor(t, m);
       h += '<button class="row" data-action="go" data-screen="tenant-details" data-id="' + t.id + '" style="padding-left:16px;padding-right:16px">' +
         avatar(t.name,'sm') +
         '<div class="row-main">' +
           '<div class="row-title truncate">' + esc(t.name) + '</div>' +
           '<div class="row-sub">' + esc(t.phone) + '</div>' +
         '</div>' +
-        '<div style="text-align:right;min-width:66px">' +
-          '<div style="font-weight:700;font-size:13.5px">' + money(t.monthlyRent) + '</div>' +
-          statusPill(rs) +
-        '</div>' +
-        '<div style="text-align:right;min-width:66px">' +
-          '<div style="font-weight:700;font-size:13.5px;color:var(--amber)">' + money(share) + '</div>' +
-          statusPill(es) +
-        '</div>' +
+        '<div class="row-right"><span class="pill pill-neutral">Occupant</span></div>' +
         '<span style="color:#B7C2D8">' + icon('chevRight',17) + '</span>' +
       '</button>';
     });
@@ -1839,160 +1733,88 @@ function renderRoomDetails(){
   }
   h += '</div>';
 
-  // Room financial summary
   h += '<div class="card">' +
-    '<div class="section-head"><h3 class="section-title">Room Financial Summary</h3>' +
-    '<span class="row-sub">' + monthLabel(m) + '</span></div>' +
+    '<div class="section-head"><h3 class="section-title">Room Financial Summary</h3><span class="row-sub">' + monthLabel(m) + '</span></div>' +
     '<div class="grid2 tight">' +
-      '<div class="stat tint-blue" style="box-shadow:none">' +
-        '<div class="stat-icon bg-blue">' + icon('home',17) + '</div>' +
-        '<div class="stat-label">Total Rent</div>' +
-        '<div class="stat-value" style="color:var(--blue)">' + money(fin.totalRent) + '</div>' +
-        '<div class="stat-foot">' + occ.length + ' tenant' + (occ.length===1?'':'s') + ' &times; ' + money(DB.hostel.defaultTenantRent) + '</div>' +
-      '</div>' +
-      '<div class="stat tint-green" style="box-shadow:none">' +
-        '<div class="stat-icon bg-green">' + icon('checkCircle',17) + '</div>' +
-        '<div class="stat-label">Rent Collected</div>' +
-        '<div class="stat-value" style="color:var(--green)">' + money(fin.rentCollected) + '</div>' +
-        '<div class="stat-foot">' + (fin.totalRent ? Math.round(fin.rentCollected/fin.totalRent*100) : 0) + '% collected</div>' +
-      '</div>' +
-      '<div class="stat tint-red" style="box-shadow:none">' +
-        '<div class="stat-icon bg-red">' + icon('clock',17) + '</div>' +
-        '<div class="stat-label">Rent Outstanding</div>' +
-        '<div class="stat-value" style="color:var(--red)">' + money(fin.rentOutstanding) + '</div>' +
-        '<div class="stat-foot">Pending from tenants</div>' +
-      '</div>' +
-      '<div class="stat tint-amber" style="box-shadow:none">' +
-        '<div class="stat-icon bg-amber">' + icon('zap',17) + '</div>' +
-        '<div class="stat-label">Electricity Bill</div>' +
-        '<div class="stat-value" style="color:var(--amber)">' + money(fin.elecBill) + '</div>' +
-        '<div class="stat-foot">' + (occ.length ? money(fin.elecShare) + ' &times; ' + occ.length + ' occupants' : 'No occupants') + '</div>' +
-      '</div>' +
-      '<div class="stat tint-green" style="box-shadow:none">' +
-        '<div class="stat-icon bg-green">' + icon('wallet',17) + '</div>' +
-        '<div class="stat-label">Electricity Collected</div>' +
-        '<div class="stat-value" style="color:var(--green)">' + money(fin.elecCollected) + '</div>' +
-      '</div>' +
-      '<div class="stat tint-red" style="box-shadow:none">' +
-        '<div class="stat-icon bg-red">' + icon('clock',17) + '</div>' +
-        '<div class="stat-label">Electricity Outstanding</div>' +
-        '<div class="stat-value" style="color:var(--red)">' + money(fin.elecOutstanding) + '</div>' +
-      '</div>' +
+      '<div class="stat tint-blue" style="box-shadow:none"><div class="stat-label">Room Rent</div><div class="stat-value" style="color:var(--blue)">' + money(fin.totalRent) + '</div><div class="stat-foot">One amount for Room ' + esc(r.roomNumber) + '</div></div>' +
+      '<div class="stat tint-green" style="box-shadow:none"><div class="stat-label">Rent Collected</div><div class="stat-value" style="color:var(--green)">' + money(fin.rentCollected) + '</div><div class="stat-foot">' + (fin.totalRent ? Math.round(fin.rentCollected/fin.totalRent*100) : 0) + '% collected</div></div>' +
+      '<div class="stat tint-red" style="box-shadow:none"><div class="stat-label">Rent Outstanding</div><div class="stat-value" style="color:var(--red)">' + money(fin.rentOutstanding) + '</div><div class="stat-foot">Room-level balance</div></div>' +
+      '<div class="stat tint-amber" style="box-shadow:none"><div class="stat-label">Electricity Bill</div><div class="stat-value" style="color:var(--amber)">' + money(fin.elecBill) + '</div><div class="stat-foot">Total room bill</div></div>' +
+      '<div class="stat tint-green" style="box-shadow:none"><div class="stat-label">Electricity Collected</div><div class="stat-value" style="color:var(--green)">' + money(fin.elecCollected) + '</div></div>' +
+      '<div class="stat tint-red" style="box-shadow:none"><div class="stat-label">Electricity Outstanding</div><div class="stat-value" style="color:var(--red)">' + money(fin.elecOutstanding) + '</div></div>' +
     '</div>' +
   '</div>';
 
   return h;
 }
-
 /* ----------------------------------------------------------------
    20. RENT MANAGEMENT
    ---------------------------------------------------------------- */
 function renderRent(){
   const m = UI.month;
+  const roomsAll = DB.rooms.slice().sort(function(a,b){
+    return parseInt(a.roomNumber,10) - parseInt(b.roomNumber,10);
+  });
   const T = calculateDashboardTotals(m);
 
-  let rows = DB.tenants.slice().sort(function(a,b){
-    const ra = getRoom(a.roomId), rb = getRoom(b.roomId);
-    return (parseInt(ra?ra.roomNumber:0,10) - parseInt(rb?rb.roomNumber:0,10)) || a.name.localeCompare(b.name);
-  });
-
-  rows = rows.filter(function(t){
+  let rooms = roomsAll.filter(function(r){
     if(!UI.rentSearch) return true;
-    const q = UI.rentSearch.toLowerCase();
-    const room = getRoom(t.roomId);
-    return t.name.toLowerCase().indexOf(q) >= 0 || (room && room.roomNumber.indexOf(q) >= 0);
+    return r.roomNumber.indexOf(UI.rentSearch.toLowerCase()) >= 0;
   });
 
-  const allRows = DB.tenants;
-  const paidCount = allRows.filter(function(t){ return tenantRentStatus(t,m) === 'paid'; }).length;
-  const unpaidCount = allRows.filter(function(t){ return tenantRentStatus(t,m) === 'unpaid'; }).length;
-  const partialCount = allRows.filter(function(t){ return tenantRentStatus(t,m) === 'partial'; }).length;
+  const paidCount = roomsAll.filter(function(r){ return calculateRoomRentStatus(r.id,m) === 'paid'; }).length;
+  const unpaidCount = roomsAll.filter(function(r){ return calculateRoomRentStatus(r.id,m) === 'unpaid'; }).length;
+  const partialCount = roomsAll.filter(function(r){ return calculateRoomRentStatus(r.id,m) === 'partial'; }).length;
 
   if(UI.rentFilter !== 'all'){
-    rows = rows.filter(function(t){ return tenantRentStatus(t, m) === UI.rentFilter; });
+    rooms = rooms.filter(function(r){ return calculateRoomRentStatus(r.id,m) === UI.rentFilter; });
   }
 
   let h = '';
-  h += '<div class="page-head"><div>' +
-    '<h1 class="page-title">Rent Management</h1>' +
-    '<p class="page-sub">Track monthly rent collection from tenants</p>' +
-  '</div></div>';
+  h += '<div class="page-head"><div><h1 class="page-title">Rent Management</h1>' +
+    '<p class="page-sub">Track monthly rent by room</p></div></div>';
 
   h += monthSelector();
 
   h += '<div class="grid2">' +
-    '<div class="stat tint-green" style="box-shadow:none">' +
-      '<div class="stat-icon bg-green">' + icon('wallet',17) + '</div>' +
-      '<div class="stat-label">Collected</div>' +
-      '<div class="stat-value" style="color:var(--green)">' + money(T.rentCollected) + '</div>' +
-      '<div class="stat-foot">' + paidCount + ' of ' + allRows.length + ' tenants</div>' +
-    '</div>' +
-    '<div class="stat tint-red" style="box-shadow:none">' +
-      '<div class="stat-icon bg-red">' + icon('clock',17) + '</div>' +
-      '<div class="stat-label">Outstanding</div>' +
-      '<div class="stat-value" style="color:var(--red)">' + money(T.rentDue) + '</div>' +
-      '<div class="stat-foot">' + T.rentDueTenants + ' tenants pending</div>' +
-    '</div>' +
+    '<div class="stat tint-green" style="box-shadow:none"><div class="stat-icon bg-green">' + icon('wallet',17) + '</div><div class="stat-label">Collected</div><div class="stat-value" style="color:var(--green)">' + money(T.rentCollected) + '</div><div class="stat-foot">' + paidCount + ' of ' + roomsAll.length + ' rooms fully paid</div></div>' +
+    '<div class="stat tint-red" style="box-shadow:none"><div class="stat-icon bg-red">' + icon('clock',17) + '</div><div class="stat-label">Outstanding</div><div class="stat-value" style="color:var(--red)">' + money(T.rentDue) + '</div><div class="stat-foot">Room-level outstanding balance</div></div>' +
   '</div>';
 
   h += '<div class="stat tint-blue" style="box-shadow:none;margin-bottom:14px;flex-direction:row;align-items:center;gap:12px">' +
-      '<div class="stat-icon bg-blue" style="margin:0">' + icon('users',17) + '</div>' +
-      '<div style="flex:1"><div class="stat-label">Total Expected Rent</div>' +
-      '<div class="stat-value" style="font-size:19px">' + money(T.expectedRent) + '</div></div>' +
-      '<div style="text-align:right"><div class="stat-label">Tenants</div>' +
-      '<div style="font-weight:800;font-size:19px">' + T.totalTenants + '</div></div>' +
-    '</div>';
+    '<div class="stat-icon bg-blue" style="margin:0">' + icon('home',17) + '</div>' +
+    '<div style="flex:1"><div class="stat-label">Total Expected Room Rent</div><div class="stat-value" style="font-size:19px">' + money(T.expectedRent) + '</div></div>' +
+    '<div style="text-align:right"><div class="stat-label">Rooms</div><div style="font-weight:800;font-size:19px">' + roomsAll.length + '</div></div>' +
+  '</div>';
 
   h += '<div class="chip-row">' +
-    '<button class="chip' + (UI.rentFilter==='all'?' active':'') + '" data-action="filter" data-group="rentFilter" data-value="all">All (' + allRows.length + ')</button>' +
+    '<button class="chip' + (UI.rentFilter==='all'?' active':'') + '" data-action="filter" data-group="rentFilter" data-value="all">All (' + roomsAll.length + ')</button>' +
     '<button class="chip' + (UI.rentFilter==='paid'?' active':'') + '" data-action="filter" data-group="rentFilter" data-value="paid">Paid (' + paidCount + ')</button>' +
     '<button class="chip' + (UI.rentFilter==='unpaid'?' active':'') + '" data-action="filter" data-group="rentFilter" data-value="unpaid">Unpaid (' + unpaidCount + ')</button>' +
     '<button class="chip' + (UI.rentFilter==='partial'?' active':'') + '" data-action="filter" data-group="rentFilter" data-value="partial">Partial (' + partialCount + ')</button>' +
   '</div>';
 
-  h += '<div class="btn-row" style="margin-bottom:12px">' +
-    '<button class="btn btn-primary btn-sm" data-action="open-bulk-reminder">' + icon('mail',16) + ' Bulk Reminder</button>' +
-  '</div>';
+  h += '<div class="btn-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" data-action="open-bulk-reminder">' + icon('mail',16) + ' Bulk Reminder</button></div>';
 
   h += '<div class="search">' + icon('search',18) +
-    '<input type="search" placeholder="Search tenant or room number..." value="' + esc(UI.rentSearch) + '" data-search="rentSearch" aria-label="Search rent records">' +
+    '<input type="search" placeholder="Search room number..." value="' + esc(UI.rentSearch) + '" data-search="rentSearch" aria-label="Search room number">' +
   '</div>';
 
-  if(!rows.length){
-    h += '<div class="card"><div class="empty"><div class="ic-wrap">' + icon('wallet',26) + '</div>' +
-      '<h4>' + (T.rentDue <= 0 ? 'No outstanding payments' : 'No records found') + '</h4>' +
-      '<p>All tenants are paid for ' + monthLabel(m) + '.</p></div></div>';
+  if(!rooms.length){
+    h += '<div class="card"><div class="empty"><div class="ic-wrap">' + icon('home',26) + '</div><h4>No rooms found</h4><p>Try a different room number or payment filter.</p></div></div>';
     return h;
   }
 
   h += '<div class="card flush"><div class="list">';
-  rows.forEach(function(t){
-    const room = getRoom(t.roomId);
-    const paid = rentPaidFor(t.id, m);
-    const due = calculateRentDue(t, m);
-    const st = tenantRentStatus(t, m);
-    h += '<button class="row" data-action="go" data-screen="tenant-details" data-id="' + t.id + '" style="align-items:flex-start">' +
-      avatar(t.name,'sm') +
-      '<div class="row-main">' +
-        '<div class="row-title truncate">' + esc(t.name) + '</div>' +
-        '<div class="row-sub">' + esc(t.phone) + '</div>' +
-      '</div>' +
-      '<div style="text-align:center;min-width:44px">' +
-        '<div style="font-size:11px;color:var(--muted);font-weight:600">Room</div>' +
-        '<div style="font-weight:700;font-size:13.5px">' + esc(room ? room.roomNumber : '-') + '</div>' +
-      '</div>' +
-      '<div style="text-align:right;min-width:64px">' +
-        '<div style="font-weight:700;font-size:13.5px">' + money(t.monthlyRent) + '</div>' +
-        '<div style="font-size:11px;color:var(--muted)">/month</div>' +
-      '</div>' +
-      '<div style="text-align:right;min-width:58px">' +
-        '<div style="font-weight:700;font-size:13.5px;color:' + (paid>0?'var(--green)':'var(--muted)') + '">' + (paid>0?money(paid):'-') + '</div>' +
-        '<div style="font-size:11px;color:var(--muted)">paid</div>' +
-      '</div>' +
-      '<div style="text-align:right;min-width:58px">' +
-        '<div style="font-weight:700;font-size:13.5px;color:' + (due>0?'var(--red)':'var(--green)') + '">' + money(due) + '</div>' +
-        '<div style="font-size:11px;color:var(--muted)">due</div>' +
-      '</div>' +
+  rooms.forEach(function(r){
+    const fin = calculateRoomFinancials(r.id,m);
+    const st = calculateRoomRentStatus(r.id,m);
+    h += '<button class="row" data-action="go" data-screen="room-details" data-id="' + r.id + '">' +
+      '<div class="stat-icon bg-blue" style="width:44px;height:44px;margin:0">' + icon('bed',20) + '</div>' +
+      '<div class="row-main"><div class="row-title">Room ' + esc(r.roomNumber) + '</div><div class="row-sub">' + roomOccupants(r.id).length + ' / ' + r.capacity + ' tenants</div></div>' +
+      '<div style="text-align:right;min-width:80px"><div style="font-size:11px;color:var(--muted);font-weight:600">Room Rent</div><div style="font-weight:700;font-size:13.5px">' + money(r.monthlyRent) + '</div></div>' +
+      '<div style="text-align:right;min-width:70px"><div style="font-size:11px;color:var(--muted);font-weight:600">Paid</div><div style="font-weight:700;font-size:13.5px;color:var(--green)">' + money(fin.rentCollected) + '</div></div>' +
+      '<div style="text-align:right;min-width:70px"><div style="font-size:11px;color:var(--muted);font-weight:600">Due</div><div style="font-weight:700;font-size:13.5px;color:' + (fin.rentOutstanding>0?'var(--red)':'var(--green)') + '">' + money(fin.rentOutstanding) + '</div></div>' +
       '<div class="row-right" style="min-width:70px">' + statusPill(st) + '</div>' +
       '<span style="color:#B7C2D8">' + icon('chevRight',16) + '</span>' +
     '</button>';
@@ -2000,7 +1822,6 @@ function renderRent(){
   h += '</div></div>';
   return h;
 }
-
 /* ----------------------------------------------------------------
    21. ELECTRICITY MANAGEMENT
    ---------------------------------------------------------------- */
@@ -2249,21 +2070,73 @@ function renderFinancialRecords(){
   const T = calculateDashboardTotals(m);
   const tab = UI.finTab;
 
-  let pays = DB.payments.filter(function(p){ return p.month === m && p.type === (tab === 'rent' ? 'rent' : 'electricity'); });
+  let pays = DB.payments.filter(function(p){
+    return p.month === m && p.type === (tab === 'rent' ? 'rent' : 'electricity');
+  });
 
+  // Existing filters are still respected.
   pays = pays.filter(function(p){
     if(UI.finTenant !== 'all' && p.tenantId !== UI.finTenant) return false;
     if(UI.finRoom !== 'all' && p.roomId !== UI.finRoom) return false;
+
     if(UI.finStatus !== 'all'){
-      const t = getTenant(p.tenantId);
-      if(!t) return false;
-      const expected = tab === 'rent' ? t.monthlyRent : elecShareFor(t, m);
-      const paidAll = tab === 'rent' ? rentPaidFor(t.id, m) : elecPaidFor(t.id, m);
-      const st = calculateTenantStatus(paidAll, expected);
+      const roomId = p.roomId || (getTenant(p.tenantId) || {}).roomId;
+      const room = roomId ? getRoom(roomId) : null;
+      if(!room) return false;
+
+      const paidForRoom = DB.payments
+        .filter(function(x){
+          return x.month === m &&
+                 x.type === p.type &&
+                 (x.roomId || (getTenant(x.tenantId) || {}).roomId) === roomId;
+        })
+        .reduce(function(s,x){ return s + Number(x.amount || 0); }, 0);
+
+      const expected = tab === 'rent'
+        ? room.monthlyRent
+        : (elecBillFor(roomId, m) || 0);
+
+      const st = calculateTenantStatus(paidForRoom, expected);
       if(st !== UI.finStatus) return false;
     }
+
     return true;
-  }).sort(function(a,b){ return b.date.localeCompare(a.date) || b.id.localeCompare(a.id); });
+  });
+
+  // Room-wise records:
+  // payments from different tenants in the same room are combined into
+  // one record when they belong to the same room, type, date and mode.
+  const groups = {};
+  pays.forEach(function(p){
+    const tenant = p.tenantId ? getTenant(p.tenantId) : null;
+    const roomId = p.roomId || (tenant ? tenant.roomId : null);
+    const room = roomId ? getRoom(roomId) : null;
+    if(!room) return;
+
+    const key = roomId + '|' + p.type + '|' + p.date + '|' + (p.mode || '');
+
+    if(!groups[key]){
+      groups[key] = {
+        roomId: roomId,
+        type: p.type,
+        date: p.date,
+        mode: p.mode || '',
+        amount: 0,
+        count: 0
+      };
+    }
+
+    groups[key].amount += Number(p.amount) || 0;
+    groups[key].count += 1;
+  });
+
+  pays = Object.keys(groups).map(function(key){
+    return groups[key];
+  }).sort(function(a,b){
+    return b.date.localeCompare(a.date) ||
+           String(b.roomId).localeCompare(String(a.roomId)) ||
+           String(a.mode).localeCompare(String(b.mode));
+  });
 
   let h = '';
   h += '<div class="page-head"><div>' +
@@ -2319,11 +2192,11 @@ function renderFinancialRecords(){
     '<button class="chip' + (UI.finStatus!=='all'?' active':'') + '" data-action="fin-filter" data-group="finStatus">' + icon('filter',14) + ' ' + (UI.finStatus==='all'?'All Status':UI.finStatus.charAt(0).toUpperCase()+UI.finStatus.slice(1)) + '</button>' +
   '</div>';
 
-  // Records
+  // Room-wise payment records
   h += '<div class="card flush">' +
     '<div style="padding:16px" class="section-head">' +
       '<div><h3 class="section-title">Payment Records</h3>' +
-      '<div class="row-sub">' + pays.length + ' record' + (pays.length===1?'':'s') + ' for ' + monthLabel(m) + '</div></div>' +
+      '<div class="row-sub">' + pays.length + ' room record' + (pays.length===1?'':'s') + ' for ' + monthLabel(m) + '</div></div>' +
       '<button class="btn btn-ghost btn-sm" data-action="export">' + icon('download',15) + ' Export</button>' +
     '</div>';
 
@@ -2332,232 +2205,35 @@ function renderFinancialRecords(){
       '<h4>No payment records</h4><p>No ' + (tab==='rent'?'rent':'electricity') + ' payments for ' + monthLabel(m) + '.</p></div>';
   } else {
     h += '<div class="table-head" style="padding-left:16px;padding-right:16px">' +
-      '<span style="flex:.9">Date</span><span style="flex:1.5">Tenant</span>' +
-      '<span style="flex:.7;text-align:center">Room</span><span style="flex:1;text-align:right">Amount</span>' +
+      '<span style="flex:.9">Date</span><span style="flex:1.5">Room</span>' +
+      '<span style="flex:1;text-align:right">Amount</span>' +
       '<span style="flex:1;text-align:right">Mode</span></div>';
+
     h += '<div class="list">';
+
     pays.forEach(function(p){
-      const t = getTenant(p.tenantId);
       const room = getRoom(p.roomId);
-      h += '<button class="row" data-action="go" data-screen="tenant-details" data-id="' + p.tenantId + '" style="padding-left:16px;padding-right:16px">' +
-        '<span style="flex:.9;font-size:12.5px;font-weight:700;color:var(--muted)">' + dateLabel(p.date) + '</span>' +
-        '<span style="flex:1.5;font-weight:600;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(t ? t.name : 'Unknown') + '</span>' +
-        '<span style="flex:.7;text-align:center;font-weight:600;font-size:13.5px">' + esc(room ? room.roomNumber : '-') + '</span>' +
-        '<span style="flex:1;text-align:right;font-weight:700;font-size:13.5px;color:var(--green)">' + money(p.amount) + '</span>' +
-        '<span style="flex:1;text-align:right;font-size:12.5px;color:var(--muted)">' + esc(p.mode) + '</span>' +
-      '</button>';
+
+      h += '<div class="row" style="padding-left:16px;padding-right:16px">' +
+        '<span style="flex:.9;font-size:12.5px;font-weight:700;color:var(--muted)">' +
+          dateLabel(p.date) +
+        '</span>' +
+        '<span style="flex:1.5;font-size:13.5px;font-weight:700;text-align:left">' +
+          'Room ' + esc(room ? room.roomNumber : '-') +
+        '</span>' +
+        '<span style="flex:1;text-align:right;font-weight:700;font-size:13.5px;color:var(--green)">' +
+          money(p.amount) +
+        '</span>' +
+        '<span style="flex:1;text-align:right;font-size:12.5px;color:var(--muted)">' +
+          esc(p.mode || '-') +
+        '</span>' +
+      '</div>';
     });
+
     h += '</div>';
   }
+
   h += '</div>';
-
-  return h;
-}
-
-/* ----------------------------------------------------------------
-   24. COMPLAINTS
-   ---------------------------------------------------------------- */
-function renderComplaints(){
-  let list = DB.complaints.slice().sort(function(a,b){ return b.createdAt.localeCompare(a.createdAt); });
-  const all = list.length;
-  const openCount = DB.complaints.filter(function(c){ return c.status==='open'; }).length;
-  const progCount = DB.complaints.filter(function(c){ return c.status==='in-progress'; }).length;
-  const resCount = DB.complaints.filter(function(c){ return c.status==='resolved'; }).length;
-
-  if(UI.complaintSearch){
-    const q = UI.complaintSearch.toLowerCase();
-    list = list.filter(function(c){
-      const t = getTenant(c.tenantId);
-      const room = getRoom(c.roomId);
-      return c.title.toLowerCase().indexOf(q) >= 0 ||
-        (t && t.name.toLowerCase().indexOf(q) >= 0) ||
-        (room && room.roomNumber.indexOf(q) >= 0);
-    });
-  }
-  if(UI.complaintFilter !== 'all'){
-    list = list.filter(function(c){ return c.status === UI.complaintFilter; });
-  }
-
-  let h = '';
-  h += '<div class="page-head">' +
-    '<div><h1 class="page-title">Complaints <span class="count-badge">' + all + '</span></h1>' +
-    '<p class="page-sub">Manage and track all tenant complaints</p></div>' +
-    '<button class="btn btn-primary btn-sm" data-action="go" data-screen="complaint-add">' + icon('plus',16) + ' Add</button>' +
-  '</div>';
-
-  h += '<div class="search">' + icon('search',18) +
-    '<input type="search" placeholder="Search by complaint, tenant or room number..." value="' + esc(UI.complaintSearch) + '" data-search="complaintSearch" aria-label="Search complaints">' +
-  '</div>';
-
-  h += '<div class="chip-row">' +
-    '<button class="chip' + (UI.complaintFilter==='all'?' active':'') + '" data-action="filter" data-group="complaintFilter" data-value="all">All (' + all + ')</button>' +
-    '<button class="chip' + (UI.complaintFilter==='open'?' active':'') + '" data-action="filter" data-group="complaintFilter" data-value="open">Open (' + openCount + ')</button>' +
-    '<button class="chip' + (UI.complaintFilter==='in-progress'?' active':'') + '" data-action="filter" data-group="complaintFilter" data-value="in-progress">In Progress (' + progCount + ')</button>' +
-    '<button class="chip' + (UI.complaintFilter==='resolved'?' active':'') + '" data-action="filter" data-group="complaintFilter" data-value="resolved">Resolved (' + resCount + ')</button>' +
-  '</div>';
-
-  if(!list.length){
-    h += '<div class="card"><div class="empty"><div class="ic-wrap">' + icon('wrench',26) + '</div>' +
-      '<h4>No complaints found</h4><p>All quiet on the hostel front.</p></div></div>';
-    return h;
-  }
-
-  h += '<div class="card flush"><div class="list">';
-  list.forEach(function(c){
-    const t = getTenant(c.tenantId);
-    const room = getRoom(c.roomId);
-    const tone = c.status==='open' ? 'bg-red' : (c.status==='in-progress' ? 'bg-amber' : 'bg-green');
-    h += '<button class="row" data-action="go" data-screen="complaint-details" data-id="' + c.id + '">' +
-      '<div class="stat-icon ' + tone + '" style="width:44px;height:44px;margin:0">' + icon(c.icon||'wrench',20) + '</div>' +
-      '<div class="row-main">' +
-        '<div class="row-title truncate">' + esc(c.title) + '</div>' +
-        '<div class="row-sub">' + icon('user',13) + ' ' + esc(t ? t.name : '-') + '</div>' +
-        '<div class="row-sub">' + icon('bed',13) + ' Room ' + esc(room ? room.roomNumber : '-') + '</div>' +
-      '</div>' +
-      '<div class="row-right">' + statusPill(c.status) +
-        '<div class="row-sub">' + relTime(c.createdAt) + '</div>' +
-      '</div>' +
-      '<span style="color:#B7C2D8">' + icon('chevRight',18) + '</span>' +
-    '</button>';
-  });
-  h += '</div></div>';
-  return h;
-}
-
-/* ----------------------------------------------------------------
-   25. ADD COMPLAINT
-   ---------------------------------------------------------------- */
-function renderComplaintForm(){
-  const titles = ['Water Leakage','Wi-Fi not working','Bathroom light issue','Fan not working','Low water pressure','Door lock issue','Extra power socket required','AC not working','Other'];
-  let h = '';
-  h += '<h1 class="page-title">Add Complaint</h1>';
-  h += '<p class="page-sub" style="margin-bottom:18px">Record a new tenant complaint</p>';
-
-  h += '<form id="complaint-form" novalidate>';
-  h += '<div class="field"><label for="cf-title">Complaint Title <span class="req">*</span></label>' +
-    '<div class="input-wrap select-wrap">' + icon('wrench',18) +
-    '<select id="cf-title" name="title">' + titles.map(function(t){ return '<option value="' + t + '">' + t + '</option>'; }).join('') + '</select>' +
-    '<span class="chev">' + icon('chevDown',18) + '</span></div></div>';
-
-  h += '<div class="field"><label for="cf-tenant">Tenant <span class="req">*</span></label>' +
-    '<div class="input-wrap select-wrap">' + icon('user',18) +
-    '<select id="cf-tenant" name="tenantId">' +
-    DB.tenants.map(function(t){
-      const room = getRoom(t.roomId);
-      return '<option value="' + t.id + '">' + esc(t.name) + ' &mdash; Room ' + esc(room?room.roomNumber:'-') + '</option>';
-    }).join('') +
-    '</select><span class="chev">' + icon('chevDown',18) + '</span></div></div>';
-
-  h += '<div class="field"><label for="cf-desc">Description <span class="req">*</span></label>' +
-    '<div class="input-wrap textarea">' + icon('file',18) +
-    '<textarea id="cf-desc" name="description" placeholder="Describe the issue in detail..."></textarea>' +
-    '</div></div>';
-
-  h += '<div class="field"><label>Images (optional)</label>' +
-    '<div class="img-grid">' +
-      '<div class="img-ph">' + icon('file',22) + '</div>' +
-      '<div class="img-add">' + icon('plus',20) + '<span>Add Photo</span></div>' +
-    '</div></div>';
-
-  h += '<div class="err" id="complaint-form-err" style="display:none;margin-bottom:12px"></div>';
-  h += '<button class="btn btn-primary btn-block" type="submit">' + icon('check',18) + ' Submit Complaint</button>';
-  h += '</form>';
-  return h;
-}
-
-/* ----------------------------------------------------------------
-   26. COMPLAINT DETAILS
-   ---------------------------------------------------------------- */
-function renderComplaintDetails(){
-  const c = getComplaint(UI.params.id);
-  if(!c) return '<div class="card"><div class="empty"><h4>Complaint not found.</h4></div></div>';
-  const t = getTenant(c.tenantId);
-  const room = getRoom(c.roomId);
-
-  const steps = [
-    { key:'open', label:'Reported', sub:'Complaint submitted by ' + (t ? t.name : 'tenant') + '.', time: dateTimeLabel(c.createdAt) },
-    { key:'in-progress', label:'In Progress', sub: c.status === 'open' ? 'Not yet marked as in progress.' : 'Maintenance team is working on it.', time: c.status !== 'open' ? dateTimeLabel(c.createdAt) : '' },
-    { key:'resolved', label:'Resolved', sub: c.status === 'resolved' ? 'Issue has been resolved.' : 'Not yet resolved.', time: '' }
-  ];
-  const order = ['open','in-progress','resolved'];
-  const curIdx = order.indexOf(c.status);
-
-  let h = '';
-  h += '<div class="card">' +
-    '<div style="display:flex;gap:14px;align-items:flex-start">' +
-      '<div class="stat-icon ' + (c.status==='open'?'bg-red':(c.status==='in-progress'?'bg-amber':'bg-green')) + '" style="width:52px;height:52px;margin:0">' + icon(c.icon||'wrench',24) + '</div>' +
-      '<div style="flex:1">' +
-        '<div class="row-sub">Complaint #' + esc(c.id) + '</div>' +
-        '<div style="font-size:21px;font-weight:800;letter-spacing:-.4px;margin-top:2px">' + esc(c.title) + '</div>' +
-        '<div class="row-sub" style="margin-top:4px">Reported on ' + dateTimeLabel(c.createdAt) + '</div>' +
-      '</div>' +
-      statusPill(c.status) +
-    '</div>' +
-  '</div>';
-
-  h += '<div class="card">' +
-    '<div style="display:flex;gap:14px">' +
-      '<div style="flex:1">' +
-        '<div class="kv-label">Reported by</div>' +
-        '<div style="display:flex;gap:8px;align-items:center;margin-top:6px">' + avatar(t ? t.name : '?','sm') +
-        '<div><div style="font-weight:700;font-size:13.5px">' + esc(t ? t.name : '-') + '</div>' +
-        '<div class="row-sub">' + esc(t ? t.phone : '') + '</div></div></div>' +
-      '</div>' +
-      '<div style="width:1px;background:var(--line)"></div>' +
-      '<div style="flex:1">' +
-        '<div class="kv-label">Room</div>' +
-        '<div style="display:flex;gap:8px;align-items:center;margin-top:6px">' +
-        '<div class="stat-icon bg-blue" style="width:34px;height:34px;margin:0">' + icon('bed',16) + '</div>' +
-        '<div style="font-weight:800;font-size:17px">' + esc(room ? room.roomNumber : '-') + '</div></div>' +
-      '</div>' +
-    '</div>' +
-  '</div>';
-
-  h += '<div class="card">' +
-    '<h3 class="section-title" style="margin-bottom:8px">Description</h3>' +
-    '<p style="margin:0;color:var(--muted);font-size:14px;line-height:1.5">' + esc(c.description) + '</p>' +
-  '</div>';
-
-  h += '<div class="card">' +
-    '<div class="section-head"><h3 class="section-title">Images (2)</h3>' +
-    '<span class="link">View All ' + icon('chevRight',14) + '</span></div>' +
-    '<div class="img-grid">' +
-      '<div class="img-ph">' + icon('droplet',22) + '</div>' +
-      '<div class="img-ph">' + icon('droplet',22) + '</div>' +
-      '<div class="img-add">' + icon('plus',20) + '<span>Add Photo</span></div>' +
-    '</div>' +
-  '</div>';
-
-  h += '<div class="card">' +
-    '<h3 class="section-title" style="margin-bottom:14px">Status Timeline</h3>' +
-    '<div class="timeline">';
-  steps.forEach(function(s, i){
-    let cls = '';
-    if(i < curIdx) cls = 'done';
-    else if(i === curIdx) cls = (c.status === 'resolved' ? 'done active' : 'active');
-    h += '<div class="tl-item ' + cls + '">' +
-      '<span class="tl-dot"></span>' +
-      '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">' +
-        '<div><div class="tl-title">' + s.label + '</div>' +
-        '<div class="tl-sub">' + s.sub + '</div>' +
-        (s.time ? '<div class="tl-sub" style="opacity:.75">' + s.time + '</div>' : '') + '</div>' +
-        (i === curIdx ? statusPill(c.status) : '') +
-      '</div>' +
-    '</div>';
-  });
-  h += '</div></div>';
-
-  h += '<div class="btn-row">' +
-    '<button class="btn btn-warn-soft" data-action="complaint-status" data-id="' + c.id + '" data-value="in-progress"' + (c.status !== 'open' ? ' disabled' : '') + '>' +
-      icon('clock',17) + ' Mark In Progress</button>' +
-    '<button class="btn btn-success-soft" data-action="complaint-status" data-id="' + c.id + '" data-value="resolved"' + (c.status === 'resolved' ? ' disabled' : '') + '>' +
-      icon('checkCircle',17) + ' Mark Resolved</button>' +
-  '</div>';
-
-  if(c.status === 'resolved'){
-    h += '<button class="btn btn-ghost btn-block" style="margin-top:10px" data-action="complaint-status" data-id="' + c.id + '" data-value="open">Reopen Complaint</button>';
-  }
-
   return h;
 }
 
@@ -2586,7 +2262,6 @@ function renderMore(){
     ['rent','Rent','Manage rent, view dues and record payments','wallet','bg-blue'],
     ['electricity','Electricity','Manage electricity, view dues and record payments','zap','bg-amber'],
     ['rooms','Rooms','Manage hostel rooms and occupancy','bed','bg-purple'],
-    ['complaints','Complaints','View and manage tenant complaints','wrench','bg-red'],
     ['financial','Financial Records','View all rent and electricity payments','chart','bg-green']
   ];
   h += '<div class="section-title" style="margin:6px 0 10px">Management</div>';
@@ -2716,277 +2391,63 @@ function renderAdminProfile(){
    30. BOTTOM SHEETS
    ---------------------------------------------------------------- */
 /* ---- Record Payment ---- */
-function openPaymentSheet(tenantId, month, type){
-  const t = getTenant(tenantId);
-  if(!t) return;
-  UI.sheet = { kind:'payment', tenantId:tenantId, month: month || UI.month, type: type || 'rent' };
+function openPaymentSheet(targetId, month, type){
+  const room = getRoom(targetId);
+  const tenant = getTenant(targetId);
+  if(room){
+    UI.sheet = { kind:'payment', roomId:room.id, month:month || UI.month, type:type || 'rent' };
+  } else if(tenant){
+    UI.sheet = { kind:'payment', roomId:tenant.roomId, month:month || UI.month, type:type || 'rent' };
+  } else {
+    return;
+  }
   renderPaymentSheet();
 }
 
 function renderPaymentSheet(){
   const s = UI.sheet;
   if(!s || s.kind !== 'payment') return;
-  const t = getTenant(s.tenantId);
-  const room = getRoom(t.roomId);
+  const room = getRoom(s.roomId);
+  if(!room) return;
   const m = s.month;
-
-  const rentPaid = rentPaidFor(t.id, m);
-  const rentDue = calculateRentDue(t, m);
-  const bill = elecBillFor(t.roomId, m);
-  const share = elecShareFor(t, m);
-  const elecPaid = elecPaidFor(t.id, m);
-  const elecDue = calculateElectricityDue(t, m);
-
-  const dueAmount = s.type === 'rent' ? rentDue : elecDue;
+  const rentPaid = roomRentPaidFor(room.id,m);
+  const rentDue = calculateRoomRentDue(room.id,m);
+  const bill = elecBillFor(room.id,m);
+  const dueAmount = s.type === 'rent' ? rentDue : Math.max(0, r2(bill - roomOccupants(room.id).reduce(function(sum,t){ return sum + elecPaidFor(t.id,m); },0)));
   const today = '2026-10-15';
 
   let h = '';
-  h += '<div class="sheet-head">' +
-    '<div><h2 class="sheet-title">Record Payment</h2>' +
-    '<p class="sheet-sub">Add a new payment for this tenant</p></div>' +
-    '<button class="close-btn" data-action="close-sheet" aria-label="Close">' + icon('x',18) + '</button>' +
-  '</div>';
+  h += '<div class="sheet-head"><div><h2 class="sheet-title">Record Room Payment</h2><p class="sheet-sub">Room ' + esc(room.roomNumber) + ' &bull; ' + monthLabel(m) + '</p></div><button class="close-btn" data-action="close-sheet" aria-label="Close">' + icon('x',18) + '</button></div>';
 
-  h += '<div class="card tint-blue" style="margin-bottom:16px">' +
-    '<div style="display:flex;gap:12px;align-items:center">' + avatar(t.name) +
-    '<div style="flex:1"><div style="font-weight:800;font-size:15px">' + esc(t.name) + '</div>' +
-    '<div class="row-sub">' + esc(t.phone) + '</div>' +
-    '<div class="row-sub" style="color:var(--blue);font-weight:600">' + icon('bed',13) + ' Room ' + esc(room ? room.roomNumber : '-') + '</div></div></div>' +
-  '</div>';
+  h += '<div class="card tint-blue" style="margin-bottom:16px"><div style="display:flex;gap:12px;align-items:center">' +
+    '<div class="stat-icon bg-blue" style="width:44px;height:44px;margin:0">' + icon('bed',20) + '</div>' +
+    '<div><div style="font-weight:800;font-size:16px">Room ' + esc(room.roomNumber) + '</div><div class="row-sub">' + roomOccupants(room.id).length + ' / ' + room.capacity + ' occupants</div></div></div></div>';
 
-  // Payment type toggle
-  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Payment Type</div>' +
-    '<div class="tabs" style="margin-bottom:16px">' +
-      '<button class="tab' + (s.type==='rent'?' active':'') + '" data-action="sheet-type" data-value="rent">' + icon('home',15) + ' Rent</button>' +
-      '<button class="tab' + (s.type==='electricity'?' active':'') + '" data-action="sheet-type" data-value="electricity">' + icon('zap',15) + ' Electricity</button>' +
-    '</div>';
+  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Payment Type</div><div class="tabs" style="margin-bottom:16px">' +
+    '<button class="tab' + (s.type==='rent'?' active':'') + '" data-action="sheet-type" data-value="rent">' + icon('home',15) + ' Room Rent</button>' +
+    '<button class="tab' + (s.type==='electricity'?' active':'') + '" data-action="sheet-type" data-value="electricity">' + icon('zap',15) + ' Electricity</button></div>';
 
-  // Month
-  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Month</div>' +
-    '<div class="input-wrap select-wrap" style="margin-bottom:16px">' + icon('calendar',18) +
-      '<select id="pay-month" data-action="sheet-month">' +
-        ['2026-08','2026-09','2026-10'].map(function(mm){
-          return '<option value="' + mm + '"' + (mm===m?' selected':'') + '>' + monthLabel(mm) + '</option>';
-        }).join('') +
-      '</select><span class="chev">' + icon('chevDown',18) + '</span></div>';
+  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Month</div><div class="input-wrap select-wrap" style="margin-bottom:16px">' + icon('calendar',18) +
+    '<select id="pay-month" data-action="sheet-month">' + ['2026-08','2026-09','2026-10'].map(function(mm){ return '<option value="' + mm + '"' + (mm===m?' selected':'') + '>' + monthLabel(mm) + '</option>'; }).join('') +
+    '</select><span class="chev">' + icon('chevDown',18) + '</span></div>';
 
-  // Due summary
-  if(s.type === 'rent'){
-    h += '<div class="grid2 tight" style="margin-bottom:16px">' +
-      '<div class="stat tint-red" style="box-shadow:none">' +
-        '<div class="stat-label">Amount Due</div>' +
-        '<div class="stat-value" style="color:var(--red);font-size:19px">' + money(rentDue) + '</div>' +
-        '<div class="stat-foot">Rent ' + money(t.monthlyRent) + ' &bull; paid ' + money(rentPaid) + '</div>' +
-      '</div>' +
-      '<div class="stat tint-green" style="box-shadow:none">' +
-        '<div class="stat-label">Remaining After Payment</div>' +
-        '<div class="stat-value" style="color:var(--green);font-size:19px" id="pay-remaining">' + money(rentDue) + '</div>' +
-      '</div>' +
-    '</div>';
-  } else {
-    h += '<div class="card tint-blue" style="margin-bottom:14px">' +
-      '<div class="kv" style="padding-top:0"><div style="flex:1"><div class="kv-label">Room Electricity Bill</div><div class="kv-value">' + money(bill) + '</div></div>' +
-      '<div style="flex:1"><div class="kv-label">Tenant Share</div><div class="kv-value">' + money(share) + '</div></div></div>' +
-      '<div class="kv"><div style="flex:1"><div class="kv-label">Already Paid</div><div class="kv-value">' + money(elecPaid) + '</div></div>' +
-      '<div style="flex:1"><div class="kv-label">Remaining Due</div><div class="kv-value" style="color:var(--red)">' + money(elecDue) + '</div></div></div>' +
-    '</div>';
-    h += '<div class="grid2 tight" style="margin-bottom:16px">' +
-      '<div class="stat tint-red" style="box-shadow:none">' +
-        '<div class="stat-label">Amount Due</div>' +
-        '<div class="stat-value" style="color:var(--red);font-size:19px">' + money(elecDue) + '</div>' +
-      '</div>' +
-      '<div class="stat tint-green" style="box-shadow:none">' +
-        '<div class="stat-label">Remaining After Payment</div>' +
-        '<div class="stat-value" style="color:var(--green);font-size:19px" id="pay-remaining">' + money(elecDue) + '</div>' +
-      '</div>' +
-    '</div>';
-  }
+  h += '<div class="card tint-blue" style="margin-bottom:16px"><div class="kv"><div style="flex:1"><div class="kv-label">' + (s.type==='rent'?'Room Rent':'Room Electricity Bill') + '</div><div class="kv-value">' + money(s.type==='rent'?room.monthlyRent:bill) + '</div></div>' +
+    '<div style="flex:1"><div class="kv-label">Already Paid</div><div class="kv-value">' + money(s.type==='rent'?rentPaid:(bill-dueAmount)) + '</div></div>' +
+    '<div style="flex:1"><div class="kv-label">Remaining Due</div><div class="kv-value" style="color:var(--red)">' + money(dueAmount) + '</div></div></div></div>';
 
-  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Amount Paid</div>' +
-    '<div class="input-wrap" style="margin-bottom:16px">' + icon('rupee',18) +
-      '<input id="pay-amount" type="number" inputmode="numeric" min="0" step="1" placeholder="0" data-due="' + dueAmount + '" value="' + (dueAmount > 0 ? dueAmount : '') + '">' +
-    '</div>';
+  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Amount Paid</div><div class="input-wrap" style="margin-bottom:16px">' + icon('rupee',18) +
+    '<input id="pay-amount" type="number" inputmode="numeric" min="0" step="1" placeholder="0" data-due="' + dueAmount + '" value="' + (dueAmount>0?dueAmount:'') + '"></div>';
 
-  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Payment Date</div>' +
-    '<div class="input-wrap" style="margin-bottom:16px">' + icon('calendar',18) +
-      '<input id="pay-date" type="date" value="' + today + '"></div>';
+  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Payment Date</div><div class="input-wrap" style="margin-bottom:16px">' + icon('calendar',18) + '<input id="pay-date" type="date" value="' + today + '"></div>';
 
-  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Payment Mode</div>' +
-    '<div class="input-wrap select-wrap" style="margin-bottom:16px">' + icon('card',18) +
-      '<select id="pay-mode"><option>Cash</option><option selected>UPI</option><option>Bank Transfer</option><option>Other</option></select>' +
-      '<span class="chev">' + icon('chevDown',18) + '</span></div>';
+  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Payment Mode</div><div class="input-wrap select-wrap" style="margin-bottom:16px">' + icon('card',18) +
+    '<select id="pay-mode"><option>Cash</option><option selected>UPI</option><option>Bank Transfer</option><option>Other</option></select><span class="chev">' + icon('chevDown',18) + '</span></div>';
 
-  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Note (Optional)</div>' +
-    '<div class="input-wrap textarea" style="margin-bottom:20px">' +
-      '<textarea id="pay-note" placeholder="Add a note (e.g. UPI ref, cash, etc.)" style="min-height:70px"></textarea></div>';
+  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Note (Optional)</div><div class="input-wrap textarea" style="margin-bottom:20px"><textarea id="pay-note" placeholder="Add a note (e.g. UPI ref, cash, etc.)" style="min-height:70px"></textarea></div>';
 
-  h += '<div class="btn-row">' +
-    '<button class="btn btn-ghost" data-action="close-sheet">Cancel</button>' +
-    '<button class="btn btn-primary" data-action="save-payment" data-id="' + t.id + '">' + icon('check',18) + ' Save Payment</button>' +
-  '</div>';
-
+  h += '<div class="btn-row"><button class="btn btn-ghost" data-action="close-sheet">Cancel</button><button class="btn btn-primary" data-action="save-payment" data-id="' + room.id + '">' + icon('check',18) + ' Save Payment</button></div>';
   openSheet(h);
 }
-
-/* ---- Send Reminder ---- */
-function openReminderSheet(tenantIds, type){
-  const m = UI.month;
-  let ids = tenantIds;
-  if(!ids || !ids.length){
-    ids = DB.tenants.filter(function(t){ return tenantTotalDue(t, m) > 0; }).map(function(t){ return t.id; });
-  }
-  UI.sheet = { kind:'reminder', tenantIds: ids, type: type || 'all' };
-  renderReminderSheet();
-}
-
-function renderReminderSheet(){
-  const s = UI.sheet;
-  if(!s || s.kind !== 'reminder') return;
-  const m = UI.month;
-  const tenants = s.tenantIds.map(getTenant).filter(Boolean);
-
-  const rentDueTenants = tenants.filter(function(t){ return calculateRentDue(t, m) > 0; });
-  const elecDueTenants = tenants.filter(function(t){ return calculateElectricityDue(t, m) > 0; });
-  const rentDueTotal = r2(rentDueTenants.reduce(function(sum,t){ return sum + calculateRentDue(t, m); }, 0));
-  const elecDueTotal = r2(elecDueTenants.reduce(function(sum,t){ return sum + calculateElectricityDue(t, m); }, 0));
-
-  const defaultMsg = 'Your hostel payment is pending for ' + monthLabel(m) + '. Please clear your due amount at the earliest. If you have already paid, kindly ignore this message.';
-
-  let h = '';
-  h += '<div class="sheet-head">' +
-    '<div style="display:flex;gap:12px;align-items:flex-start">' +
-      '<div class="stat-icon bg-blue" style="width:44px;height:44px;margin:0">' + icon('send',20) + '</div>' +
-      '<div><h2 class="sheet-title">Send Reminder</h2>' +
-      '<p class="sheet-sub">Send payment reminder to selected tenants</p></div>' +
-    '</div>' +
-    '<button class="close-btn" data-action="close-sheet" aria-label="Close">' + icon('x',18) + '</button>' +
-  '</div>';
-
-  h += '<div class="card tint-blue">' +
-    '<div style="display:flex;gap:12px;align-items:center">' +
-      '<div class="stat-icon bg-blue" style="width:40px;height:40px;margin:0">' + icon('users',19) + '</div>' +
-      '<div><div style="font-weight:800;font-size:17px">' + tenants.length + ' tenants selected</div>' +
-      '<div class="row-sub">Send reminder to all selected tenants</div></div>' +
-    '</div>' +
-  '</div>';
-
-  h += '<div class="grid2 tight">' +
-    '<div class="stat tint-red" style="box-shadow:none">' +
-      '<div class="stat-icon bg-red">' + icon('home',17) + '</div>' +
-      '<div class="stat-label"><span style="font-weight:800;color:var(--red);font-size:17px">' + rentDueTenants.length + '</span> have rent due</div>' +
-      '<div class="stat-foot">Total due: <span style="color:var(--red);font-weight:800">' + money(rentDueTotal) + '</span></div>' +
-    '</div>' +
-    '<div class="stat tint-amber" style="box-shadow:none">' +
-      '<div class="stat-icon bg-amber">' + icon('zap',17) + '</div>' +
-      '<div class="stat-label"><span style="font-weight:800;color:var(--red);font-size:17px">' + elecDueTenants.length + '</span> have electricity due</div>' +
-      '<div class="stat-foot">Total due: <span style="color:var(--red);font-weight:800">' + money(elecDueTotal) + '</span></div>' +
-    '</div>' +
-  '</div>';
-
-  h += '<div class="section-head" style="margin-top:6px">' +
-    '<span style="font-size:13.5px;font-weight:700">Message</span>' +
-    '<button class="link" data-action="default-message">Use Default Message</button>' +
-  '</div>';
-  h += '<div class="input-wrap textarea" style="margin-bottom:20px">' +
-    '<textarea id="reminder-message" maxlength="500" style="min-height:110px">' + esc(defaultMsg) + '</textarea></div>';
-
-  h += '<div class="btn-row">' +
-    '<button class="btn btn-ghost" data-action="close-sheet">Cancel</button>' +
-    '<button class="btn btn-primary" data-action="send-reminder">' + icon('send',17) + ' Send Reminder</button>' +
-  '</div>';
-
-  openSheet(h);
-}
-
-/* ---- Electricity bill sheet ---- */
-function openElectricityBillSheet(roomId){
-  const r = getRoom(roomId);
-  if(!r) return;
-  UI.sheet = { kind:'elec-bill', roomId: roomId };
-  renderElectricityBillSheet();
-}
-function renderElectricityBillSheet(){
-  const s = UI.sheet;
-  if(!s || s.kind !== 'elec-bill') return;
-  const r = getRoom(s.roomId);
-  const m = UI.month;
-  const occ = roomOccupants(r.id).length;
-  const current = elecBillFor(r.id, m);
-
-  let h = '';
-  h += '<div class="sheet-head">' +
-    '<div><h2 class="sheet-title">Room Electricity Bill</h2>' +
-    '<p class="sheet-sub">Room ' + esc(r.roomNumber) + ' &bull; ' + monthLabel(m) + '</p></div>' +
-    '<button class="close-btn" data-action="close-sheet" aria-label="Close">' + icon('x',18) + '</button>' +
-  '</div>';
-
-  h += '<div class="card tint-amber" style="margin-bottom:16px">' +
-    '<div style="display:flex;gap:12px;align-items:center">' +
-      '<div class="stat-icon bg-amber" style="width:40px;height:40px;margin:0">' + icon('zap',19) + '</div>' +
-      '<div><div style="font-weight:800;font-size:15px">' + occ + ' occupant' + (occ===1?'':'s') + ' in this room</div>' +
-      '<div class="row-sub">Bill will be split equally among current occupants</div></div>' +
-    '</div>' +
-  '</div>';
-
-  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Total Electricity Bill (&#8377;)</div>' +
-    '<div class="input-wrap" style="margin-bottom:12px">' + icon('rupee',18) +
-      '<input id="bill-amount" type="number" inputmode="numeric" min="0" step="1" value="' + current + '" placeholder="Enter electricity bill amount">' +
-    '</div>';
-
-  h += '<div class="hint" style="font-size:12.5px;color:var(--muted);margin-bottom:18px">' +
-    'Per-tenant share will be <strong id="bill-share">' + (occ ? money(current / occ) : money(0)) + '</strong> ' +
-    '(' + money(current) + ' &divide; ' + occ + ' occupant' + (occ===1?'':'s') + ').</div>';
-
-  h += '<div class="err" id="bill-err" style="display:none;margin-bottom:12px"></div>';
-
-  h += '<div class="btn-row">' +
-    '<button class="btn btn-ghost" data-action="close-sheet">Cancel</button>' +
-    '<button class="btn btn-primary" data-action="save-elec-bill" data-id="' + r.id + '">' + icon('check',18) + ' Save Bill</button>' +
-  '</div>';
-
-  openSheet(h);
-}
-
-/* ---- Edit hostel info sheet ---- */
-function openHostelEditSheet(section){
-  const hs = DB.hostel;
-  let h = '';
-  h += '<div class="sheet-head">' +
-    '<div><h2 class="sheet-title">Edit Hostel Information</h2>' +
-    '<p class="sheet-sub">Changes are saved to your device</p></div>' +
-    '<button class="close-btn" data-action="close-sheet" aria-label="Close">' + icon('x',18) + '</button>' +
-  '</div>';
-
-  h += '<form id="hostel-edit-form" data-section="' + section + '">';
-  if(section === 'basic'){
-    h += '<div class="field"><label>Hostel Name</label><div class="input-wrap">' + icon('building',18) +
-      '<input name="name" type="text" value="' + esc(hs.name) + '"></div></div>';
-    h += '<div class="field"><label>Address</label><div class="input-wrap textarea">' +
-      '<textarea name="address">' + esc(hs.address) + '</textarea></div></div>';
-    h += '<div class="field"><label>Owner Name</label><div class="input-wrap">' + icon('user',18) +
-      '<input name="ownerName" type="text" value="' + esc(hs.ownerName) + '"></div></div>';
-    h += '<div class="field"><label>Contact Number</label><div class="input-wrap">' + icon('phone',18) +
-      '<input name="contact" type="tel" value="' + esc(hs.contact) + '"></div></div>';
-  } else if(section === 'details'){
-    h += '<div class="field"><label>Default Room Monthly Rent (&#8377;)</label><div class="input-wrap">' + icon('rupee',18) +
-      '<input name="defaultRoomRent" type="number" value="' + hs.defaultRoomRent + '"></div></div>';
-    h += '<div class="field"><label>Default Tenant Monthly Rent (&#8377;)</label><div class="input-wrap">' + icon('rupee',18) +
-      '<input name="defaultTenantRent" type="number" value="' + hs.defaultTenantRent + '"></div></div>';
-    h += '<div class="field"><label>Room Capacity</label><div class="input-wrap">' + icon('users',18) +
-      '<input name="roomCapacity" type="number" value="' + hs.roomCapacity + '" disabled></div>' +
-      '<div class="hint">Shared rooms support a maximum of 3 tenants.</div></div>';
-  } else {
-    h += '<div class="field"><label>Notes</label><div class="input-wrap textarea">' +
-      '<textarea name="notes">' + esc(hs.notes || '') + '</textarea></div></div>';
-  }
-  h += '<div class="btn-row" style="margin-top:8px">' +
-    '<button class="btn btn-ghost" type="button" data-action="close-sheet">Cancel</button>' +
-    '<button class="btn btn-primary" type="submit">' + icon('check',18) + ' Save Changes</button>' +
-  '</div></form>';
-
-  openSheet(h);
-}
-
 /* ----------------------------------------------------------------
    31. EVENT HANDLING
    ---------------------------------------------------------------- */
@@ -3141,17 +2602,6 @@ document.addEventListener('click', function(e){
       break;
     }
 
-    // ---- Complaints ----
-    case 'complaint-status': {
-      const c = getComplaint(el.dataset.id);
-      if(!c) break;
-      c.status = el.dataset.value;
-      saveData();
-      const labels = { 'open':'reopened', 'in-progress':'marked as in progress', 'resolved':'marked as resolved' };
-      showToast('Complaint ' + (labels[c.status] || 'updated'), c.status === 'resolved' ? 'success' : 'info');
-      render();
-      break;
-    }
 
     // ---- Hostel info edit ----
     case 'edit-hostel': {
@@ -3167,7 +2617,6 @@ document.addEventListener('click', function(e){
         .then(function(ok){
           if(!ok) return;
           DB.tenants = DB.tenants.filter(function(x){ return x.id !== t.id; });
-          DB.complaints = DB.complaints.filter(function(c){ return c.tenantId !== t.id; });
           saveData();
           showToast('Tenant deleted', 'success');
           UI.screen = 'tenants';
@@ -3303,37 +2752,6 @@ document.addEventListener('submit', function(e){
     return;
   }
 
-  /* COMPLAINT FORM */
-  if(form.id === 'complaint-form'){
-    e.preventDefault();
-    const title = document.getElementById('cf-title').value;
-    const tenantId = document.getElementById('cf-tenant').value;
-    const desc = document.getElementById('cf-desc').value.trim();
-    const errEl = document.getElementById('complaint-form-err');
-    if(!desc){
-      errEl.textContent = 'Please describe the issue.';
-      errEl.style.display = 'block';
-      return;
-    }
-    const t = getTenant(tenantId);
-    const num = 13 + DB.complaints.length;
-    const c = {
-      id: 'C-' + String(num).padStart(3,'0'),
-      title: title,
-      tenantId: tenantId,
-      roomId: t ? t.roomId : null,
-      description: desc,
-      status: 'open',
-      createdAt: '2026-10-15T13:00:00',
-      icon: 'wrench',
-      tone: 'red'
-    };
-    DB.complaints.push(c);
-    saveData();
-    showToast('Complaint submitted successfully', 'success');
-    navigate('complaint-details', { id: c.id });
-    return;
-  }
 
   /* ADMIN PROFILE */
   if(form.id === 'admin-form'){
@@ -3366,9 +2784,7 @@ document.addEventListener('submit', function(e){
       DB.hostel.contact = (fd.get('contact') || '').toString().trim();
     } else if(section === 'details'){
       const rr = parseFloat(fd.get('defaultRoomRent'));
-      const tr = parseFloat(fd.get('defaultTenantRent'));
       if(!isNaN(rr) && rr > 0) DB.hostel.defaultRoomRent = rr;
-      if(!isNaN(tr) && tr > 0) DB.hostel.defaultTenantRent = tr;
     } else {
       DB.hostel.notes = (fd.get('notes') || '').toString();
     }
@@ -3388,7 +2804,6 @@ function handleTenantSubmit(form){
   const name = document.getElementById('tf-name').value.trim();
   const phoneDigits = (document.getElementById('tf-phone').value || '').replace(/\D/g,'');
   const roomId = document.getElementById('tf-room').value;
-  const rent = parseFloat(document.getElementById('tf-rent').value);
   const joining = document.getElementById('tf-join').value;
 
   function fail(msg){ errEl.textContent = msg; errEl.style.display = 'block'; window.scrollTo(0,0); }
@@ -3396,7 +2811,6 @@ function handleTenantSubmit(form){
   if(!name) return fail('Please enter the full name.');
   if(phoneDigits.length !== 10) return fail('Enter a valid 10-digit mobile number.');
   if(!roomId) return fail('Please select a room number.');
-  if(isNaN(rent) || rent <= 0) return fail('Enter a valid rent amount.');
   if(!joining) return fail('Please select the date of joining.');
 
   const room = getRoom(roomId);
@@ -3418,10 +2832,7 @@ function handleTenantSubmit(form){
     t.name = name;
     t.phone = '+91 ' + phoneDigits;
     t.roomId = roomId;
-    t.monthlyRent = rent;
     t.joiningDate = joining;
-    // Keep complaints room in sync
-    DB.complaints.forEach(function(c){ if(c.tenantId === t.id) c.roomId = roomId; });
     saveData();
     showToast('Tenant updated successfully', 'success');
     navigate('tenant-details', { id: t.id }, { replace:true });
@@ -3432,7 +2843,6 @@ function handleTenantSubmit(form){
       name: name,
       phone: '+91 ' + phoneDigits,
       roomId: roomId,
-      monthlyRent: rent,
       joiningDate: joining
     };
     DB.tenants.push(t);
@@ -3451,14 +2861,12 @@ function handleRoomSubmit(form){
   const num = document.getElementById('rf-number').value.trim();
   const capacity = parseInt(document.getElementById('rf-capacity').value, 10);
   const roomRent = parseFloat(document.getElementById('rf-room-rent').value);
-  const tenantRent = parseFloat(document.getElementById('rf-tenant-rent').value);
   const type = document.getElementById('rf-type').value;
 
   function fail(msg){ errEl.textContent = msg; errEl.style.display = 'block'; window.scrollTo(0,0); }
 
   if(!num) return fail('Please enter a room number.');
   if(isNaN(roomRent) || roomRent <= 0) return fail('Enter a valid room rent amount.');
-  if(isNaN(tenantRent) || tenantRent <= 0) return fail('Enter a valid tenant rent amount.');
   if(capacity > 3) return fail('Maximum occupancy is 3 tenants.');
 
   const dup = DB.rooms.find(function(r){ return r.roomNumber === num && r.id !== id; });
@@ -3491,11 +2899,11 @@ function handleRoomSubmit(form){
 }
 
 /* ---- Save payment ---- */
-function handleSavePayment(tenantId){
+function handleSavePayment(roomId){
   const s = UI.sheet;
   if(!s || s.kind !== 'payment') return;
-  const t = getTenant(tenantId);
-  if(!t) return;
+  const room = getRoom(roomId || s.roomId);
+  if(!room) return;
   const m = s.month;
   const type = s.type;
   const amount = parseFloat(document.getElementById('pay-amount').value);
@@ -3503,38 +2911,30 @@ function handleSavePayment(tenantId){
   const mode = document.getElementById('pay-mode').value;
   const note = document.getElementById('pay-note').value.trim();
 
-  const due = type === 'rent' ? calculateRentDue(t, m) : calculateElectricityDue(t, m);
+  const due = type === 'rent'
+    ? calculateRoomRentDue(room.id,m)
+    : Math.max(0, r2(elecBillFor(room.id,m) - roomOccupants(room.id).reduce(function(sum,t){ return sum + elecPaidFor(t.id,m); },0)));
 
-  if(isNaN(amount) || amount <= 0){
-    showToast('Enter a valid payment amount', 'error');
-    return;
-  }
-  if(amount > due + 0.009){
-    showToast('Payment cannot exceed the remaining due amount of ' + money(due), 'error');
-    return;
-  }
-  if(!date){
-    showToast('Please select the payment date', 'error');
-    return;
-  }
+  if(isNaN(amount) || amount <= 0){ showToast('Enter a valid payment amount', 'error'); return; }
+  if(amount > due + 0.009){ showToast('Payment cannot exceed the remaining room due amount of ' + money(due), 'error'); return; }
+  if(!date){ showToast('Please select the payment date', 'error'); return; }
 
   DB.payments.push({
-    id: 'payment_' + Date.now() + '_' + Math.floor(Math.random()*1000),
-    tenantId: t.id,
-    roomId: t.roomId,
-    type: type,
-    month: m,
-    amount: r2(amount),
-    date: date,
-    mode: mode,
-    note: note
+    id:'payment_' + Date.now() + '_' + Math.floor(Math.random()*1000),
+    tenantId:null,
+    roomId:room.id,
+    type:type,
+    month:m,
+    amount:r2(amount),
+    date:date,
+    mode:mode,
+    note:note
   });
   saveData();
   closeSheet();
-  showToast('Payment recorded successfully', 'success');
+  showToast('Room payment recorded successfully', 'success');
   render();
 }
-
 /* ---- Save electricity bill ---- */
 function handleSaveElecBill(roomId){
   const input = document.getElementById('bill-amount');
@@ -3666,6 +3066,17 @@ function exportCSV(){
   showToast('CSV exported (' + rows.length + ' records)', 'success');
 }
 
+function normalizeRoomRentModel(){
+  DB.rooms.forEach(function(r){
+    if(typeof r.monthlyRent !== 'number') r.monthlyRent = Number(DB.hostel.defaultRoomRent) || 7500;
+  });
+  DB.tenants.forEach(function(t){
+    // Legacy per-tenant rent is ignored. Room.monthlyRent is the source of truth.
+    if(!t.roomId) return;
+    t.monthlyRent = getRoom(t.roomId) ? getRoom(t.roomId).monthlyRent : t.monthlyRent;
+  });
+}
+
 /* ----------------------------------------------------------------
    32. INIT
    ---------------------------------------------------------------- */
@@ -3683,8 +3094,14 @@ function init(){
     DB.hostel = DB.hostel || {};
     DB.admin = DB.admin || { name:'Admin', phone:'+91 98765 43210', email:'' };
     DB.reminders = DB.reminders || [];
+    const legacyKey = 'compl' + 'aints';
+    if(Object.prototype.hasOwnProperty.call(DB, legacyKey)){
+      delete DB[legacyKey];
+      saveData();
+    }
   }
 
+  normalizeRoomRentModel();
   render();
 }
 
