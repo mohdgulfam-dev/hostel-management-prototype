@@ -605,19 +605,43 @@ function clearAuth(){
    ---------------------------------------------------------------- */
 function seedData(){
   const rooms = [];
-  for(let n=201;n<=208;n++){
+  for(let n=101;n<=133;n++){
     rooms.push({ id:'room_'+n, roomNumber:String(n), capacity:3, type:'shared', monthlyRent:7500 });
   }
 
   const names = [
-    'Mohd Gulfam','Mohd Rizwan','Mohd Anas Shakeel',   // 201
-    'Sahil Sharma','Faizan Ali','Zaheer Ahmed',        // 202
-    'Aman Tiwari','Vikash Singh','Imran Khan',         // 203
-    'Ahmed Khan','Bilal Ahmad','Sameer Rizvi',         // 204
-    'Rehan Ali','Kashif Ansari','Naved Khan',          // 205
-    'Sameer Ali','Danish Khan','Arman Sheikh',         // 206
-    'Umar Farooq','Adil Hussain','Rehan Verma',        // 207
-    'Shahrukh Ali','Mohd Arif','Irfan Khan'            // 208
+    'Mohd Gulfam','Mohd Rizwan','Mohd Anas Shakeel',
+    'Sahil Sharma','Faizan Ali','Zaheer Ahmed',
+    'Aman Tiwari','Vikash Singh','Imran Khan',
+    'Ahmed Khan','Bilal Ahmad','Sameer Rizvi',
+    'Rehan Ali','Kashif Ansari','Naved Khan',
+    'Sameer Ali','Danish Khan','Arman Sheikh',
+    'Umar Farooq','Adil Hussain','Rehan Verma',
+    'Shahrukh Ali','Mohd Arif','Irfan Khan',
+    'Aarav Gupta','Rohit Kumar','Arjun Singh',
+    'Adnan Khan','Faheem Ahmad','Saif Ali',
+    'Aftab Hussain','Zaid Ahmed','Hamza Khan',
+    'Abhishek Verma','Kunal Sharma','Rohit Yadav',
+    'Arif Ansari','Noman Khan','Shadab Ahmad',
+    'Vivek Mishra','Rahul Singh','Deepak Kumar',
+    'Faisal Khan','Asad Ali','Ishaan Gupta',
+    'Yash Sharma','Saurabh Singh','Aman Gupta',
+    'Tariq Ahmad','Salman Khan','Sameer Khan',
+    'Nikhil Verma','Rajat Singh','Faizan Khan',
+    'Shahbaz Ali','Waseem Ahmad','Mujtaba Khan',
+    'Rohit Mishra','Ankit Kumar','Mohammad Saad',
+    'Ayaan Khan','Danish Ahmad','Shoaib Ali',
+    'Harsh Verma','Vikas Kumar','Adil Khan',
+    'Imran Ahmad','Fahad Khan','Mohit Sharma',
+    'Rizwan Ali','Arman Khan','Shubham Singh',
+    'Asif Ahmad','Karan Gupta','Bilal Khan',
+    'Sameer Ahmad','Junaid Ali','Rakesh Kumar',
+    'Adeel Khan','Naveen Singh','Shahrukh Ahmad',
+    'Irfan Ali','Akash Verma','Faizan Ahmad',
+    'Mohammad Arif','Sahil Khan','Rahul Verma',
+    'Zubair Ahmad','Prashant Kumar','Aamir Khan',
+    'Mohsin Ali','Vishal Sharma','Rehan Ahmad',
+    'Atif Khan','Rohan Gupta','Nadeem Ali'
   ];
   const joinDates = ['2025-08-12','2025-09-03','2025-10-21','2026-01-15','2026-02-08','2026-03-19','2026-04-02','2026-06-11'];
 
@@ -635,9 +659,9 @@ function seedData(){
 
   // ---- Electricity bills per room per month (divisible by 3 occupants) ----
   const billsByMonth = {
-    '2026-08':[840,990,810,840,990,900,930,810],
-    '2026-09':[870,1020,840,870,1020,930,960,840],
-    '2026-10':[900,1050,855,900,1050,960,990,870]
+    '2026-08': Array.from({length:33}, function(_,i){ return 780 + (i % 11) * 30; }),
+    '2026-09': Array.from({length:33}, function(_,i){ return 810 + (i % 11) * 30; }),
+    '2026-10': Array.from({length:33}, function(_,i){ return 840 + (i % 11) * 30; })
   };
   const electricity = [];
   Object.keys(billsByMonth).forEach(function(month){
@@ -679,28 +703,14 @@ function seedData(){
     });
   });
 
-  // October: mixed states (index -> [rentPaid, elecPaid])
-  const oct = [
-    [0,150],[2500,300],[1500,150],      // 201..204 tenants 1-3 (room204 actually) -> note order below
-    [2500,300],[1000,0],[2500,300],     // 201
-    [0,0],[2500,0],[1500,175],          // 202
-    [0,0],[2500,285],[2500,285],        // 203
-    [2500,350],[2500,350],[2500,350],   // 205
-    [0,0],[2500,320],[1200,160],        // 206
-    [2500,330],[2500,330],[2500,0],     // 207
-    [0,0],[2500,290],[2500,145]         // 208
-  ];
-  // re-map: tenants 0,1,2 are room 201 per seed order; fix October table ordering:
-  const octFixed = [
-    [2500,300],[1000,0],[2500,300],     // 201
-    [0,0],[2500,0],[1500,175],          // 202
-    [0,0],[2500,285],[2500,285],        // 203
-    [0,150],[2500,300],[1500,150],      // 204
-    [2500,350],[2500,350],[2500,350],   // 205
-    [0,0],[2500,320],[1200,160],        // 206
-    [2500,330],[2500,330],[2500,0],     // 207
-    [0,0],[2500,290],[2500,145]         // 208
-  ];
+  // October: mixed payment states across all 99 tenants.
+  // Keep the same UI behaviour while giving every room realistic sample data.
+  const octFixed = tenants.map(function(t, i){
+    const rentPaid = (i % 5 === 0) ? 0 : ((i % 7 === 0) ? 1500 : 2500);
+    const share = r2(billFor(t.roomId, '2026-10') / 3);
+    const elecPaid = (i % 6 === 0) ? 0 : ((i % 5 === 0) ? r2(share / 2) : share);
+    return [rentPaid, elecPaid];
+  });
 
   tenants.forEach(function(t, i){
     const cfg = octFixed[i] || [0,0];
@@ -1343,82 +1353,93 @@ function tenantMatchesSearch(t, q){
 
 function renderTenants(){
   const m = UI.month;
-  let list = DB.tenants.slice().sort(function(a,b){
-    const ra = getRoom(a.roomId), rb = getRoom(b.roomId);
-    const na = ra ? parseInt(ra.roomNumber,10) : 0;
-    const nb = rb ? parseInt(rb.roomNumber,10) : 0;
-    if(na !== nb) return na - nb;
-    return a.name.localeCompare(b.name);
+  const rooms = DB.rooms.slice().sort(function(a,b){
+    return parseInt(a.roomNumber,10) - parseInt(b.roomNumber,10);
   });
 
-  const total = list.length;
-  list = list.filter(function(t){ return tenantMatchesSearch(t, UI.tenantSearch); });
-
-  if(UI.tenantFilter === 'due'){
-    list = list.filter(function(t){ return tenantTotalDue(t, m) > 0; });
-  } else if(UI.tenantFilter === 'paid'){
-    list = list.filter(function(t){ return tenantTotalDue(t, m) <= 0; });
+  function roomMatchesSearch(room){
+    if(!UI.tenantSearch) return true;
+    const q = UI.tenantSearch.toLowerCase();
+    if(room.roomNumber.indexOf(q) >= 0) return true;
+    return roomOccupants(room.id).some(function(t){
+      return t.name.toLowerCase().indexOf(q) >= 0 || t.phone.toLowerCase().indexOf(q) >= 0;
+    });
   }
 
-  const dueCount = DB.tenants.filter(function(t){ return tenantTotalDue(t, m) > 0; }).length;
-  const paidCount = total - dueCount;
+  function roomDue(room){
+    return r2(roomOccupants(room.id).reduce(function(sum,t){
+      return sum + tenantTotalDue(t,m);
+    },0));
+  }
+
+  const dueRooms = rooms.filter(function(r){ return roomDue(r) > 0; }).length;
+  const paidRooms = rooms.length - dueRooms;
+
+  let list = rooms.filter(roomMatchesSearch);
+  if(UI.tenantFilter === 'due') list = list.filter(function(r){ return roomDue(r) > 0; });
+  if(UI.tenantFilter === 'paid') list = list.filter(function(r){ return roomDue(r) <= 0; });
 
   let h = '';
   h += '<div class="page-head">' +
-      '<div><h1 class="page-title">Tenants <span class="count-badge">' + total + '</span></h1>' +
-      '<p class="page-sub">Manage all tenants living in your hostel</p></div>' +
+      '<div><h1 class="page-title">Tenants <span class="count-badge">' + rooms.length + '</span></h1>' +
+      '<p class="page-sub">' + rooms.length + ' rooms &bull; ' + DB.tenants.length + ' tenants</p></div>' +
       '<button class="btn btn-primary btn-sm" data-action="go" data-screen="tenant-add">' + icon('plus',16) + ' Add Tenant</button>' +
     '</div>';
 
   h += '<div class="search">' + icon('search',18) +
-      '<input type="search" placeholder="Search tenant or mobile number..." value="' + esc(UI.tenantSearch) + '" data-search="tenantSearch" aria-label="Search tenants">' +
+      '<input type="search" placeholder="Search room, tenant or mobile number..." value="' + esc(UI.tenantSearch) + '" data-search="tenantSearch" aria-label="Search rooms or tenants">' +
     '</div>';
 
   h += '<div class="chip-row">' +
-      '<button class="chip' + (UI.tenantFilter==='all'?' active':'') + '" data-action="filter" data-group="tenantFilter" data-value="all">All (' + total + ')</button>' +
-      '<button class="chip' + (UI.tenantFilter==='due'?' active':'') + '" data-action="filter" data-group="tenantFilter" data-value="due">Due (' + dueCount + ')</button>' +
-      '<button class="chip' + (UI.tenantFilter==='paid'?' active':'') + '" data-action="filter" data-group="tenantFilter" data-value="paid">Paid (' + paidCount + ')</button>' +
+      '<button class="chip' + (UI.tenantFilter==='all'?' active':'') + '" data-action="filter" data-group="tenantFilter" data-value="all">All (' + rooms.length + ')</button>' +
+      '<button class="chip' + (UI.tenantFilter==='due'?' active':'') + '" data-action="filter" data-group="tenantFilter" data-value="due">Due (' + dueRooms + ')</button>' +
+      '<button class="chip' + (UI.tenantFilter==='paid'?' active':'') + '" data-action="filter" data-group="tenantFilter" data-value="paid">Paid (' + paidRooms + ')</button>' +
       '<button class="chip" data-action="noop">' + icon('filter',15) + '</button>' +
     '</div>';
 
   if(!list.length){
     h += '<div class="card"><div class="empty">' +
       '<div class="ic-wrap">' + icon('users',26) + '</div>' +
-      '<h4>' + (DB.tenants.length ? 'No tenants match your search.' : 'No tenants found.') + '</h4>' +
-      '<p>Try a different name, mobile number or room.</p>' +
+      '<h4>No rooms match your search.</h4>' +
+      '<p>Try a different room number, tenant name or mobile number.</p>' +
     '</div></div>';
     return h;
   }
 
   h += '<div class="card flush"><div class="list">';
-  list.forEach(function(t){
-    const room = getRoom(t.roomId);
-    const rentDue = calculateRentDue(t, m);
-    const elecDue = calculateElectricityDue(t, m);
-    const totalDue = r2(rentDue + elecDue);
-    const status = tenantTotalStatus(t, m);
-    const share = elecShareFor(t, m);
-    const t2 = toneFor(t.name);
+  list.forEach(function(room){
+    const occ = roomOccupants(room.id);
+    const fin = calculateRoomFinancials(room.id,m);
+    const outstanding = r2(fin.rentOutstanding + fin.elecOutstanding);
 
-    h += '<button class="row" data-action="go" data-screen="tenant-details" data-id="' + t.id + '">' +
-      avatar(t.name) +
+    let occupantsHtml = '';
+    occ.forEach(function(t){
+      const due = tenantTotalDue(t,m);
+      occupantsHtml += '<div style="display:flex;align-items:center;gap:9px;margin-top:7px">' +
+        avatar(t.name,'sm') +
+        '<div style="flex:1;min-width:0"><div class="row-title truncate">' + esc(t.name) + '</div>' +
+        '<div class="row-sub">' + esc(t.phone) + '</div></div>' +
+        '<div style="font-size:12px;font-weight:700;color:' + (due>0?'var(--red)':'var(--green)') + '">' + (due>0 ? money(due) + ' Due' : 'Paid') + '</div>' +
+      '</div>';
+    });
+
+    h += '<button class="row" data-action="go" data-screen="room-details" data-id="' + room.id + '" style="align-items:flex-start;padding:16px">' +
+      '<div class="stat-icon bg-blue" style="width:46px;height:46px;min-width:46px;margin:0">' + icon('bed',22) + '</div>' +
       '<div class="row-main">' +
-        '<div class="row-title truncate">' + esc(t.name) + '</div>' +
-        '<div class="row-sub">' + esc(t.phone) + '</div>' +
-        '<div class="row-sub" style="color:var(--blue);font-weight:600">' + icon('bed',13) + ' Room ' + esc(room ? room.roomNumber : '-') + '</div>' +
+        '<div class="row-title" style="font-size:16px">Room ' + esc(room.roomNumber) + '</div>' +
+        '<div class="row-sub">' + occ.length + ' / ' + room.capacity + ' tenants</div>' +
+        occupantsHtml +
       '</div>' +
-      '<div style="text-align:right;min-width:78px">' +
+      '<div style="text-align:right;min-width:88px">' +
         '<div style="font-size:11px;color:var(--muted);font-weight:600">Rent</div>' +
-        '<div style="font-weight:700;font-size:13.5px">' + money(t.monthlyRent) + '</div>' +
-        '<div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:4px">Electricity</div>' +
-        '<div style="font-weight:700;font-size:13.5px;color:var(--amber)">' + money(share) + '</div>' +
+        '<div style="font-weight:700;font-size:13.5px">' + money(fin.totalRent) + '</div>' +
+        '<div style="font-size:11px;color:var(--muted);font-weight:600;margin-top:5px">Electricity</div>' +
+        '<div style="font-weight:700;font-size:13.5px;color:var(--amber)">' + money(fin.elecBill) + '</div>' +
       '</div>' +
-      '<div class="row-right" style="min-width:88px">' +
-        (totalDue > 0
-          ? '<span class="pill pill-unpaid">' + money(totalDue) + ' Due</span>'
-          : '<span class="pill pill-paid">Paid</span>') +
+      '<div class="row-right" style="min-width:90px">' +
+        (outstanding > 0 ? '<span class="pill pill-unpaid">' + money(outstanding) + ' Due</span>' : '<span class="pill pill-paid">Paid</span>') +
       '</div>' +
-      '<span style="color:#B7C2D8">' + icon('chevRight',18) + '</span>' +
+      '<span style="color:#B7C2D8;margin-top:8px">' + icon('chevRight',18) + '</span>' +
     '</button>';
   });
   h += '</div></div>';
@@ -3670,7 +3691,7 @@ function init(){
   loadAuth();
 
   let data = loadData();
-  if(!data){
+  if(!data || !Array.isArray(data.rooms) || data.rooms.length !== 33 || data.rooms[0].roomNumber !== '101'){
     data = seedData();
     DB = data;
     saveData();
