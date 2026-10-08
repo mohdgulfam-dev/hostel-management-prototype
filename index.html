@@ -569,7 +569,7 @@ const UI = {
   screen:'home',
   params:{},
   stack:[],
-  month:'2026-10',
+  month:currentMonth(),
   tenantFilter:'all', tenantSearch:'',
   roomFilter:'all', roomSearch:'',
   rentFilter:'all', rentSearch:'',
@@ -753,6 +753,14 @@ function monthLabel(ym){
 function monthLabelShort(ym){
   const p = ym.split('-');
   return MONTH_SHORT[parseInt(p[1],10)-1] + ' ' + p[0];
+}
+function currentMonth(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
+}
+function currentDate(){
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 function shiftMonth(ym, delta){
   const p = ym.split('-');
@@ -1816,15 +1824,18 @@ function renderRent(){
   rooms.forEach(function(r){
     const fin = calculateRoomFinancials(r.id,m);
     const st = calculateRoomRentStatus(r.id,m);
-    h += '<button class="row" data-action="go" data-screen="room-details" data-id="' + r.id + '">' +
+    h += '<div class="row" data-action="go" data-screen="room-details" data-id="' + r.id + '" style="cursor:pointer">' +
       '<div class="stat-icon bg-blue" style="width:44px;height:44px;margin:0">' + icon('bed',20) + '</div>' +
       '<div class="row-main"><div class="row-title">Room ' + esc(r.roomNumber) + '</div><div class="row-sub">' + roomOccupants(r.id).length + ' / ' + r.capacity + ' tenants</div></div>' +
-      '<div style="text-align:right;min-width:80px"><div style="font-size:11px;color:var(--muted);font-weight:600">Room Rent</div><div style="font-weight:700;font-size:13.5px">' + money(r.monthlyRent) + '</div></div>' +
+      '<div style="text-align:right;min-width:80px"><div style="font-size:11px;color:var(--muted);font-weight:600">Monthly Rent</div><div style="font-weight:700;font-size:13.5px">' + money(7500) + '</div></div>' +
       '<div style="text-align:right;min-width:70px"><div style="font-size:11px;color:var(--muted);font-weight:600">Paid</div><div style="font-weight:700;font-size:13.5px;color:var(--green)">' + money(fin.rentCollected) + '</div></div>' +
       '<div style="text-align:right;min-width:70px"><div style="font-size:11px;color:var(--muted);font-weight:600">Due</div><div style="font-weight:700;font-size:13.5px;color:' + (fin.rentOutstanding>0?'var(--red)':'var(--green)') + '">' + money(fin.rentOutstanding) + '</div></div>' +
       '<div class="row-right" style="min-width:70px">' + statusPill(st) + '</div>' +
+      (fin.rentOutstanding > 0
+        ? '<button class="btn btn-primary btn-sm" data-action="open-payment" data-id="' + r.id + '" data-type="rent" onclick="event.stopPropagation()">Mark Paid</button>'
+        : '<span style="font-size:12px;font-weight:700;color:var(--green);white-space:nowrap">Paid ✓</span>') +
       '<span style="color:#B7C2D8">' + icon('chevRight',16) + '</span>' +
-    '</button>';
+    '</div>';
   });
   h += '</div></div>';
   return h;
@@ -2421,7 +2432,7 @@ function renderPaymentSheet(){
   const rentDue = calculateRoomRentDue(room.id,m);
   const bill = elecBillFor(room.id,m);
   const dueAmount = s.type === 'rent' ? rentDue : Math.max(0, r2(bill - roomOccupants(room.id).reduce(function(sum,t){ return sum + elecPaidFor(t.id,m); },0)));
-  const today = '2026-10-15';
+  const today = currentDate();
 
   let h = '';
   h += '<div class="sheet-head"><div><h2 class="sheet-title">Record Room Payment</h2><p class="sheet-sub">Room ' + esc(room.roomNumber) + ' &bull; ' + monthLabel(m) + '</p></div><button class="close-btn" data-action="close-sheet" aria-label="Close">' + icon('x',18) + '</button></div>';
@@ -3074,8 +3085,10 @@ function exportCSV(){
 }
 
 function normalizeRoomRentModel(){
+  // HS Height charges a fixed ₹7,500 monthly rent per room. Electricity is separate.
+  DB.hostel.defaultRoomRent = 7500;
   DB.rooms.forEach(function(r){
-    if(typeof r.monthlyRent !== 'number') r.monthlyRent = Number(DB.hostel.defaultRoomRent) || 7500;
+    if(typeof r.monthlyRent !== 'number' || r.monthlyRent <= 0) r.monthlyRent = 7500;
   });
   DB.tenants.forEach(function(t){
     // Legacy per-tenant rent is ignored. Room.monthlyRent is the source of truth.
