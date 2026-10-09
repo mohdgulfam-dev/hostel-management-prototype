@@ -614,9 +614,16 @@ function clearAuth(){
    ---------------------------------------------------------------- */
 function seedData(){
   const rooms = [];
-  for(let n=201;n<=208;n++){
+  const roomNumbers = [
+    ...Array.from({length:6}, (_,i)=>101+i),
+    ...Array.from({length:9}, (_,i)=>201+i),
+    ...Array.from({length:9}, (_,i)=>301+i),
+    ...Array.from({length:9}, (_,i)=>401+i)
+  ];
+  roomNumbers.forEach(function(n){
     rooms.push({ id:'room_'+n, roomNumber:String(n), capacity:3, type:'shared', monthlyRent:7500 });
-  }
+  });
+  const seededOccupiedRooms = rooms.filter(function(r){ return Number(r.roomNumber)>=201 && Number(r.roomNumber)<=208; });
 
   const names = [
     'Mohd Gulfam','Mohd Rizwan','Mohd Anas Shakeel',   // 201
@@ -636,7 +643,7 @@ function seedData(){
       id:'tenant_'+(i+1),
       name:name,
       phone:'+91 98765 '+(43210+i),
-      roomId:rooms[roomIdx].id,
+      roomId:seededOccupiedRooms[roomIdx].id,
       monthlyRent:2500,
       joiningDate:joinDates[i % joinDates.length]
     };
@@ -653,7 +660,7 @@ function seedData(){
     billsByMonth[month].forEach(function(bill, idx){
       electricity.push({
         id:'electricity_'+rooms[idx].roomNumber+'_'+month.replace('-','_'),
-        roomId:rooms[idx].id,
+        roomId:rooms.find(function(r){ return r.roomNumber===String(201+idx); }).id,
         month:month,
         totalBill:bill
       });
@@ -3148,6 +3155,24 @@ function normalizeRoomRentModel(){
 /* ----------------------------------------------------------------
    32. INIT
    ---------------------------------------------------------------- */
+function ensureAllHostelRooms(){
+  const requiredNumbers = [
+    ...Array.from({length:6}, (_,i)=>101+i),
+    ...Array.from({length:9}, (_,i)=>201+i),
+    ...Array.from({length:9}, (_,i)=>301+i),
+    ...Array.from({length:9}, (_,i)=>401+i)
+  ];
+  DB.rooms = Array.isArray(DB.rooms) ? DB.rooms : [];
+  const existing = new Set(DB.rooms.map(function(r){ return String(r.roomNumber); }));
+  requiredNumbers.forEach(function(n){
+    if(!existing.has(String(n))){
+      DB.rooms.push({ id:'room_'+n, roomNumber:String(n), capacity:3, type:'shared', monthlyRent:Number(DB.hostel.defaultRoomRent)||7500 });
+    }
+  });
+  // Keep rooms in numeric order for every screen that displays the room list.
+  DB.rooms.sort(function(a,b){ return Number(a.roomNumber)-Number(b.roomNumber); });
+}
+
 function init(){
   loadAuth();
 
@@ -3169,7 +3194,9 @@ function init(){
     }
   }
 
+  ensureAllHostelRooms();
   normalizeRoomRentModel();
+  saveData();
   render();
 }
 
