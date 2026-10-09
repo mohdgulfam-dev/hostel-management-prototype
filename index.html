@@ -736,7 +736,6 @@ function seedData(){
     electricity:electricity,
     payments:payments,
     rentCollectedOverrides:{},
-    reminders:[]
   };
 }
 
@@ -1322,6 +1321,8 @@ function renderDashboard(){
     h += '<div class="list">';
     recentPayments.forEach(function(p){
       const room = getRoom(p.roomId);
+      const roomMonth = p.month || m;
+      const totalRoomPayable = room ? r2(room.monthlyRent + elecBillFor(room.id, roomMonth)) : 0;
       h += '<div class="row">' +
         '<div class="stat-icon bg-blue" style="width:40px;height:40px;margin:0">' + icon('bed',18) + '</div>' +
         '<div class="row-main">' +
@@ -1329,7 +1330,7 @@ function renderDashboard(){
           '<div class="row-sub">Rent + Electricity &bull; ' + dateLabel(p.latestDate) + '</div>' +
         '</div>' +
         '<div class="row-right">' +
-          '<div class="amount paid">' + money(p.amount) + '</div>' +
+          '<div class="amount paid">' + money(totalRoomPayable) + '</div>' +
           '<div class="row-sub">Total room payment</div>' +
         '</div>' +
       '</div>';
@@ -1809,8 +1810,6 @@ function renderRent(){
     '<button class="chip' + (UI.rentFilter==='partial'?' active':'') + '" data-action="filter" data-group="rentFilter" data-value="partial">Partial (' + partialCount + ')</button>' +
   '</div>';
 
-  h += '<div class="btn-row" style="margin-bottom:12px"><button class="btn btn-primary btn-sm" data-action="open-bulk-reminder">' + icon('mail',16) + ' Bulk Reminder</button></div>';
-
   h += '<div class="search">' + icon('search',18) +
     '<input type="search" placeholder="Search room number..." value="' + esc(UI.rentSearch) + '" data-search="rentSearch" aria-label="Search room number">' +
   '</div>';
@@ -1820,14 +1819,14 @@ function renderRent(){
     return h;
   }
 
-  h += '<div class="card flush"><div class="list">';
+  h += '<div class="card flush"><div class="rent-list-scroll"><div class="list">';
   rooms.forEach(function(r){
     const fin = calculateRoomFinancials(r.id,m);
     const st = calculateRoomRentStatus(r.id,m);
     h += '<button class="row" data-action="go" data-screen="room-details" data-id="' + r.id + '">' +
       '<div class="stat-icon bg-blue" style="width:44px;height:44px;margin:0">' + icon('bed',20) + '</div>' +
       '<div class="row-main"><div class="row-title">Room ' + esc(r.roomNumber) + '</div><div class="row-sub">' + roomOccupants(r.id).length + ' / ' + r.capacity + ' tenants</div></div>' +
-      '<div style="text-align:right;min-width:80px"><div style="font-size:11px;color:var(--muted);font-weight:600">Room Rent</div><div style="font-weight:700;font-size:13.5px">' + money(r.monthlyRent) + '</div></div>' +
+      '<div style="text-align:right;min-width:100px"><div style="font-size:11px;color:var(--muted);font-weight:600">Rent + Electricity</div><div style="font-weight:700;font-size:13.5px">' + money(r2(fin.totalRent + fin.elecBill)) + '</div></div>' +
       '<div style="text-align:right;min-width:70px"><div style="font-size:11px;color:var(--muted);font-weight:600">Paid</div><div style="font-weight:700;font-size:13.5px;color:var(--green)">' + money(fin.rentCollected) + '</div></div>' +
       '<div style="text-align:right;min-width:70px"><div style="font-size:11px;color:var(--muted);font-weight:600">Due</div><div style="font-weight:700;font-size:13.5px;color:' + (fin.rentOutstanding>0?'var(--red)':'var(--green)') + '">' + money(fin.rentOutstanding) + '</div></div>' +
       '<div class="row-right" style="min-width:70px">' + statusPill(st) + '</div>' +
@@ -1900,10 +1899,6 @@ function renderElectricity(){
     '<button class="chip' + (UI.elecFilter==='paid'?' active':'') + '" data-action="filter" data-group="elecFilter" data-value="paid">Paid (' + paidCount + ')</button>' +
     '<button class="chip' + (UI.elecFilter==='unpaid'?' active':'') + '" data-action="filter" data-group="elecFilter" data-value="unpaid">Unpaid (' + unpaidCount + ')</button>' +
     '<button class="chip' + (UI.elecFilter==='partial'?' active':'') + '" data-action="filter" data-group="elecFilter" data-value="partial">Partial (' + partialCount + ')</button>' +
-  '</div>';
-
-  h += '<div class="btn-row" style="margin-bottom:12px">' +
-    '<button class="btn btn-primary btn-sm" data-action="open-bulk-reminder" data-type="electricity">' + icon('mail',16) + ' Bulk Reminder</button>' +
   '</div>';
 
   h += '<div class="search">' + icon('search',18) +
@@ -2029,7 +2024,6 @@ function renderElectricityDetails(){
 
   h += '<div class="btn-row" style="margin-bottom:14px">' +
     '<button class="btn btn-primary" data-action="open-payment" data-id="' + t.id + '" data-type="electricity">' + icon('plus',17) + ' Record Payment</button>' +
-    '<button class="btn btn-ghost" data-action="open-reminder" data-id="' + t.id + '" data-type="electricity">' + icon('send',17) + ' Send Reminder</button>' +
   '</div>';
 
   // Payment history
@@ -2610,51 +2604,6 @@ document.addEventListener('click', function(e){
       break;
     }
 
-    // ---- Reminders ----
-    case 'open-reminder': {
-      openReminderSheet([el.dataset.id], el.dataset.type);
-      break;
-    }
-    case 'open-bulk-reminder': {
-      const m = UI.month;
-      let ids;
-      if(el.dataset.type === 'electricity'){
-        ids = DB.tenants.filter(function(t){ return calculateElectricityDue(t, m) > 0; }).map(function(t){ return t.id; });
-      } else {
-        ids = DB.tenants.filter(function(t){ return tenantTotalDue(t, m) > 0; }).map(function(t){ return t.id; });
-      }
-      if(!ids.length){
-        showToast('No pending dues to remind', 'info');
-        break;
-      }
-      openReminderSheet(ids, el.dataset.type);
-      break;
-    }
-    case 'default-message': {
-      const ta = document.getElementById('reminder-message');
-      if(ta) ta.value = 'Your hostel payment is pending for ' + monthLabel(UI.month) + '. Please clear your due amount at the earliest. If you have already paid, kindly ignore this message.';
-      break;
-    }
-    case 'send-reminder': {
-      const ta = document.getElementById('reminder-message');
-      const msg = ta ? ta.value : '';
-      const s = UI.sheet;
-      if(s && s.kind === 'reminder'){
-        DB.reminders.push({
-          id:'reminder_' + Date.now(),
-          tenantIds: s.tenantIds.slice(),
-          month: UI.month,
-          message: msg,
-          sentAt: new Date().toISOString(),
-          simulated: true
-        });
-        saveData();
-        showToast('Reminder prepared for ' + s.tenantIds.length + ' tenant' + (s.tenantIds.length===1?'':'s'), 'success');
-      }
-      closeSheet();
-      break;
-    }
-
     // ---- Electricity bill ----
     case 'open-elec-bill': {
       openElectricityBillSheet(el.dataset.id);
@@ -3159,7 +3108,6 @@ function init(){
     // Forward-compatible defaults
     DB.hostel = DB.hostel || {};
     DB.admin = DB.admin || { name:'Admin', phone:'+91 98765 43210', email:'' };
-    DB.reminders = DB.reminders || [];
     DB.rentCollectedOverrides = DB.rentCollectedOverrides || {};
     const legacyKey = 'compl' + 'aints';
     if(Object.prototype.hasOwnProperty.call(DB, legacyKey)){
