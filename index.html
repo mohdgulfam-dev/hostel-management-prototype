@@ -118,6 +118,9 @@ a{color:var(--blue);text-decoration:none;}
   margin-bottom:14px;
 }
 .card.flush{padding:0;overflow:hidden;}
+.rent-list-scroll{width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;scrollbar-width:thin;}
+.rent-list-scroll .list{min-width:720px;}
+.rent-list-scroll .row{min-width:720px;}
 .card.tint-blue{background:linear-gradient(180deg,#F4F8FF,#FFFFFF);border-color:#DCE8FE;}
 .card.tint-red{background:linear-gradient(180deg,#FFF3F3,#FFFFFF);border-color:#FBDCDC;}
 .card.tint-green{background:linear-gradient(180deg,#F1FBF5,#FFFFFF);border-color:#D7F0E1;}
@@ -569,7 +572,7 @@ const UI = {
   screen:'home',
   params:{},
   stack:[],
-  month:currentMonth(),
+  month:'2026-10',
   tenantFilter:'all', tenantSearch:'',
   roomFilter:'all', roomSearch:'',
   rentFilter:'all', rentSearch:'',
@@ -732,6 +735,7 @@ function seedData(){
     tenants:tenants,
     electricity:electricity,
     payments:payments,
+    rentCollectedOverrides:{},
     reminders:[]
   };
 }
@@ -753,14 +757,6 @@ function monthLabel(ym){
 function monthLabelShort(ym){
   const p = ym.split('-');
   return MONTH_SHORT[parseInt(p[1],10)-1] + ' ' + p[0];
-}
-function currentMonth(){
-  const d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0');
-}
-function currentDate(){
-  const d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 }
 function shiftMonth(ym, delta){
   const p = ym.split('-');
@@ -892,6 +888,10 @@ function tenantTotalStatus(tenant, month){
 }
 
 function roomRentPaidFor(roomId, month){
+  const key = roomId + '|' + month;
+  if(DB.rentCollectedOverrides && Object.prototype.hasOwnProperty.call(DB.rentCollectedOverrides, key)){
+    return r2(DB.rentCollectedOverrides[key]);
+  }
   return r2(DB.payments
     .filter(function(p){
       return p.roomId===roomId && p.month===month && p.type==='rent';
@@ -1414,7 +1414,7 @@ function renderTenants(){
     return h;
   }
 
-  h += '<div class="card flush"><div class="list">';
+  h += '<div class="card flush"><div class="rent-list-scroll"><div class="list">';
   rooms.forEach(function(r){
     const occupants = roomMap[r.id] || [];
     const fin = calculateRoomFinancials(r.id, m);
@@ -1752,7 +1752,7 @@ function renderRoomDetails(){
     '<div class="section-head"><h3 class="section-title">Room Financial Summary</h3><span class="row-sub">' + monthLabel(m) + '</span></div>' +
     '<div class="grid2 tight">' +
       '<div class="stat tint-blue" style="box-shadow:none"><div class="stat-label">Room Rent</div><div class="stat-value" style="color:var(--blue)">' + money(fin.totalRent) + '</div><div class="stat-foot">One amount for Room ' + esc(r.roomNumber) + '</div></div>' +
-      '<div class="stat tint-green" style="box-shadow:none"><div class="stat-label">Rent Collected</div><div class="stat-value" style="color:var(--green)">' + money(fin.rentCollected) + '</div><div class="stat-foot">' + (fin.totalRent ? Math.round(fin.rentCollected/fin.totalRent*100) : 0) + '% collected</div></div>' +
+      '<div class="stat tint-green" style="box-shadow:none"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div class="stat-label">Rent Collected</div><button class="link" data-action="edit-rent-collected" data-id="' + r.id + '" style="font-size:12px">' + icon('edit',14) + ' Edit</button></div><div class="stat-value" style="color:var(--green)">' + money(fin.rentCollected) + '</div><div class="stat-foot">' + (fin.totalRent ? Math.round(fin.rentCollected/fin.totalRent*100) : 0) + '% collected</div></div>' +
       '<div class="stat tint-red" style="box-shadow:none"><div class="stat-label">Rent Outstanding</div><div class="stat-value" style="color:var(--red)">' + money(fin.rentOutstanding) + '</div><div class="stat-foot">Room-level balance</div></div>' +
       '<div class="stat tint-amber" style="box-shadow:none"><div class="stat-label">Electricity Bill</div><div class="stat-value" style="color:var(--amber)">' + money(fin.elecBill) + '</div><div class="stat-foot">Total room bill</div></div>' +
       '<div class="stat tint-green" style="box-shadow:none"><div class="stat-label">Electricity Collected</div><div class="stat-value" style="color:var(--green)">' + money(fin.elecCollected) + '</div></div>' +
@@ -1824,20 +1824,17 @@ function renderRent(){
   rooms.forEach(function(r){
     const fin = calculateRoomFinancials(r.id,m);
     const st = calculateRoomRentStatus(r.id,m);
-    h += '<div class="row" data-action="go" data-screen="room-details" data-id="' + r.id + '" style="cursor:pointer">' +
+    h += '<button class="row" data-action="go" data-screen="room-details" data-id="' + r.id + '">' +
       '<div class="stat-icon bg-blue" style="width:44px;height:44px;margin:0">' + icon('bed',20) + '</div>' +
       '<div class="row-main"><div class="row-title">Room ' + esc(r.roomNumber) + '</div><div class="row-sub">' + roomOccupants(r.id).length + ' / ' + r.capacity + ' tenants</div></div>' +
-      '<div style="text-align:right;min-width:80px"><div style="font-size:11px;color:var(--muted);font-weight:600">Monthly Rent</div><div style="font-weight:700;font-size:13.5px">' + money(7500) + '</div></div>' +
+      '<div style="text-align:right;min-width:80px"><div style="font-size:11px;color:var(--muted);font-weight:600">Room Rent</div><div style="font-weight:700;font-size:13.5px">' + money(r.monthlyRent) + '</div></div>' +
       '<div style="text-align:right;min-width:70px"><div style="font-size:11px;color:var(--muted);font-weight:600">Paid</div><div style="font-weight:700;font-size:13.5px;color:var(--green)">' + money(fin.rentCollected) + '</div></div>' +
       '<div style="text-align:right;min-width:70px"><div style="font-size:11px;color:var(--muted);font-weight:600">Due</div><div style="font-weight:700;font-size:13.5px;color:' + (fin.rentOutstanding>0?'var(--red)':'var(--green)') + '">' + money(fin.rentOutstanding) + '</div></div>' +
       '<div class="row-right" style="min-width:70px">' + statusPill(st) + '</div>' +
-      (fin.rentOutstanding > 0
-        ? '<button class="btn btn-primary btn-sm" data-action="open-payment" data-id="' + r.id + '" data-type="rent" onclick="event.stopPropagation()">Mark Paid</button>'
-        : '<span style="font-size:12px;font-weight:700;color:var(--green);white-space:nowrap">Paid ✓</span>') +
       '<span style="color:#B7C2D8">' + icon('chevRight',16) + '</span>' +
-    '</div>';
+    '</button>';
   });
-  h += '</div></div>';
+  h += '</div></div></div>';
   return h;
 }
 /* ----------------------------------------------------------------
@@ -2408,6 +2405,46 @@ function renderAdminProfile(){
 /* ----------------------------------------------------------------
    30. BOTTOM SHEETS
    ---------------------------------------------------------------- */
+/* ---- Edit collected rent ---- */
+function openRentCollectedEditSheet(roomId){
+  const room = getRoom(roomId);
+  if(!room) return;
+  UI.sheet = { kind:'edit-rent-collected', roomId:room.id, month:UI.month };
+  renderRentCollectedEditSheet();
+}
+
+function renderRentCollectedEditSheet(){
+  const s = UI.sheet;
+  if(!s || s.kind !== 'edit-rent-collected') return;
+  const room = getRoom(s.roomId);
+  if(!room) return;
+  const collected = roomRentPaidFor(room.id, s.month);
+  const due = calculateRoomRentDue(room.id, s.month);
+  let h = '';
+  h += '<div class="sheet-head"><div><h2 class="sheet-title">Edit Rent Collected</h2><p class="sheet-sub">Room ' + esc(room.roomNumber) + ' &bull; ' + monthLabel(s.month) + '</p></div><button class="close-btn" data-action="close-sheet" aria-label="Close">' + icon('x',18) + '</button></div>';
+  h += '<div class="card tint-blue" style="margin-bottom:16px"><div class="kv"><div style="flex:1"><div class="kv-label">Monthly Rent</div><div class="kv-value">' + money(room.monthlyRent) + '</div></div><div style="flex:1"><div class="kv-label">Current Collected</div><div class="kv-value" style="color:var(--green)">' + money(collected) + '</div></div><div style="flex:1"><div class="kv-label">Current Due</div><div class="kv-value" style="color:var(--red)">' + money(due) + '</div></div></div></div>';
+  h += '<div style="font-size:13.5px;font-weight:700;margin-bottom:8px">Rent Collected</div><div class="input-wrap" style="margin-bottom:8px">' + icon('rupee',18) + '<input id="edit-rent-collected" type="number" inputmode="numeric" min="0" step="1" value="' + collected + '"></div>';
+  h += '<div class="hint" style="margin-bottom:20px">Enter the total rent collected for this room for ' + monthLabel(s.month) + '. The remaining due will update automatically.</div>';
+  h += '<div class="btn-row"><button class="btn btn-ghost" data-action="close-sheet">Cancel</button><button class="btn btn-primary" data-action="save-rent-collected" data-id="' + room.id + '">' + icon('check',18) + ' Save Amount</button></div>';
+  openSheet(h);
+}
+
+function handleSaveRentCollected(roomId){
+  const s = UI.sheet;
+  const room = getRoom(roomId || (s && s.roomId));
+  const input = document.getElementById('edit-rent-collected');
+  if(!room || !input) return;
+  const amount = parseFloat(input.value);
+  if(isNaN(amount) || amount < 0){ showToast('Enter a valid collected amount', 'error'); return; }
+  if(amount > room.monthlyRent + 0.009){ showToast('Collected rent cannot exceed ' + money(room.monthlyRent), 'error'); return; }
+  if(!DB.rentCollectedOverrides) DB.rentCollectedOverrides = {};
+  DB.rentCollectedOverrides[room.id + '|' + UI.month] = r2(amount);
+  saveData();
+  closeSheet();
+  showToast('Rent collected updated successfully', 'success');
+  render();
+}
+
 /* ---- Record Payment ---- */
 function openPaymentSheet(targetId, month, type){
   const room = getRoom(targetId);
@@ -2432,7 +2469,7 @@ function renderPaymentSheet(){
   const rentDue = calculateRoomRentDue(room.id,m);
   const bill = elecBillFor(room.id,m);
   const dueAmount = s.type === 'rent' ? rentDue : Math.max(0, r2(bill - roomOccupants(room.id).reduce(function(sum,t){ return sum + elecPaidFor(t.id,m); },0)));
-  const today = currentDate();
+  const today = '2026-10-15';
 
   let h = '';
   h += '<div class="sheet-head"><div><h2 class="sheet-title">Record Room Payment</h2><p class="sheet-sub">Room ' + esc(room.roomNumber) + ' &bull; ' + monthLabel(m) + '</p></div><button class="close-btn" data-action="close-sheet" aria-label="Close">' + icon('x',18) + '</button></div>';
@@ -2549,6 +2586,14 @@ document.addEventListener('click', function(e){
     }
 
     // ---- Record payment ----
+    case 'edit-rent-collected': {
+      openRentCollectedEditSheet(el.dataset.id);
+      break;
+    }
+    case 'save-rent-collected': {
+      handleSaveRentCollected(el.dataset.id);
+      break;
+    }
     case 'open-payment': {
       openPaymentSheet(el.dataset.id, UI.month, el.dataset.type || 'rent');
       break;
@@ -2948,6 +2993,9 @@ function handleSavePayment(roomId){
     mode:mode,
     note:note
   });
+  if(type === 'rent' && DB.rentCollectedOverrides && Object.prototype.hasOwnProperty.call(DB.rentCollectedOverrides, room.id + '|' + m)){
+    DB.rentCollectedOverrides[room.id + '|' + m] = r2(DB.rentCollectedOverrides[room.id + '|' + m] + amount);
+  }
   saveData();
   closeSheet();
   showToast('Room payment recorded successfully', 'success');
@@ -3085,10 +3133,8 @@ function exportCSV(){
 }
 
 function normalizeRoomRentModel(){
-  // HS Height charges a fixed ₹7,500 monthly rent per room. Electricity is separate.
-  DB.hostel.defaultRoomRent = 7500;
   DB.rooms.forEach(function(r){
-    if(typeof r.monthlyRent !== 'number' || r.monthlyRent <= 0) r.monthlyRent = 7500;
+    if(typeof r.monthlyRent !== 'number') r.monthlyRent = Number(DB.hostel.defaultRoomRent) || 7500;
   });
   DB.tenants.forEach(function(t){
     // Legacy per-tenant rent is ignored. Room.monthlyRent is the source of truth.
@@ -3114,6 +3160,7 @@ function init(){
     DB.hostel = DB.hostel || {};
     DB.admin = DB.admin || { name:'Admin', phone:'+91 98765 43210', email:'' };
     DB.reminders = DB.reminders || [];
+    DB.rentCollectedOverrides = DB.rentCollectedOverrides || {};
     const legacyKey = 'compl' + 'aints';
     if(Object.prototype.hasOwnProperty.call(DB, legacyKey)){
       delete DB[legacyKey];
