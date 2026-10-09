@@ -659,7 +659,7 @@ function seedData(){
   Object.keys(billsByMonth).forEach(function(month){
     billsByMonth[month].forEach(function(bill, idx){
       electricity.push({
-        id:'electricity_'+rooms[idx].roomNumber+'_'+month.replace('-','_'),
+        id:'electricity_'+String(201+idx)+'_'+month.replace('-','_'),
         roomId:rooms.find(function(r){ return r.roomNumber===String(201+idx); }).id,
         month:month,
         totalBill:bill
@@ -3163,13 +3163,24 @@ function ensureAllHostelRooms(){
     ...Array.from({length:9}, (_,i)=>401+i)
   ];
   DB.rooms = Array.isArray(DB.rooms) ? DB.rooms : [];
-  const existing = new Set(DB.rooms.map(function(r){ return String(r.roomNumber); }));
+  const allowed = new Set(requiredNumbers.map(String));
+  const seen = new Set();
+
+  // Keep existing records for valid rooms so tenant/payment room IDs remain intact.
+  // Remove rooms outside the defined layout and duplicate room numbers.
+  DB.rooms = DB.rooms.filter(function(r){
+    const number = String(r.roomNumber);
+    if(!allowed.has(number) || seen.has(number)) return false;
+    seen.add(number);
+    return true;
+  });
+
   requiredNumbers.forEach(function(n){
-    if(!existing.has(String(n))){
+    if(!seen.has(String(n))){
       DB.rooms.push({ id:'room_'+n, roomNumber:String(n), capacity:3, type:'shared', monthlyRent:Number(DB.hostel.defaultRoomRent)||7500 });
     }
   });
-  // Keep rooms in numeric order for every screen that displays the room list.
+  // Keep exactly the 33 defined rooms in numeric order on every screen.
   DB.rooms.sort(function(a,b){ return Number(a.roomNumber)-Number(b.roomNumber); });
 }
 
