@@ -1005,8 +1005,9 @@ function back(){
 function currentTab(){
   const s = UI.screen;
   if(s === 'home') return 'home';
-  if(s.indexOf('tenant') === 0) return 'tenants';
-  if(s === 'rent' || s === 'electricity' || s === 'electricity-details' || s === 'financial') return 'rent';
+  if(s === 'rent') return 'rent';
+  if(s === 'electricity' || s === 'electricity-details') return 'electricity';
+  // Tenant and financial/detail screens remain reachable from the menu.
   return 'more';
 }
 
@@ -1133,8 +1134,8 @@ function bottomNav(){
   const tab = currentTab();
   const items = [
     ['home','Home','home'],
-    ['tenants','Tenants','users'],
     ['rent','Rent','wallet'],
+    ['electricity','Electricity','zap'],
     ['more','More','more']
   ];
   let html = '<nav class="bottom-nav" aria-label="Primary">';
