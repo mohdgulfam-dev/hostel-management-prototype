@@ -3208,39 +3208,67 @@ function ensureAllHostelRooms(){
 }
 
 function applyRequestedOctoberDemoState(){
-  if(DB.requestedOctoberStateV1) return;
+  // V2: deterministic demo records with varied electricity shares and only
+  // eight unpaid electricity tenants for October 2026. Re-applies once to
+  // existing localStorage data without changing other months or profile data.
+  if(DB.requestedOctoberStateV2) return;
   const month = '2026-10';
   DB.elecCollectedOverrides = DB.elecCollectedOverrides || {};
   DB.rentCollectedOverrides = DB.rentCollectedOverrides || {};
-    DB.elecCollectedOverrides = DB.elecCollectedOverrides || {};
-  // Ensure all 33 rooms have three occupants (99 total), preserving existing tenant records.
+
+  // Ensure every room is occupied by three tenants (33 rooms / 99 tenants).
   DB.rooms.forEach(function(room){
-    const occupants = roomOccupants(room.id);
+    let occupants = roomOccupants(room.id);
     while(occupants.length < 3){
       const idx = DB.tenants.length + 1;
       const t = {id:'tenant_auto_'+idx, name:'Tenant '+String(idx).padStart(3,'0'), phone:'+91 90000 '+String(10000 + idx).slice(-5), roomId:room.id, monthlyRent:2500, joiningDate:'2026-10-01'};
-      DB.tenants.push(t); occupants.push(t);
+      DB.tenants.push(t);
+      occupants.push(t);
     }
     room.capacity = 3;
   });
-  // Normalize October payments to a clear room-level demo: 27 paid, 5 unpaid, 1 partially paid.
+
+  // Remove only October demo transactions and bill records before rebuilding.
   DB.payments = DB.payments.filter(function(p){ return p.month !== month; });
   DB.electricity = DB.electricity.filter(function(e){ return e.month !== month; });
-  DB.rooms.forEach(function(room, i){
-    const bill = i < 27 ? 900 : (i === 27 ? 1400 : 140);
+  Object.keys(DB.elecCollectedOverrides).forEach(function(k){ if(k.endsWith('|'+month)) delete DB.elecCollectedOverrides[k]; });
+  Object.keys(DB.rentCollectedOverrides).forEach(function(k){ if(k.endsWith('|'+month)) delete DB.rentCollectedOverrides[k]; });
+
+  // Bill shares are individually varied from ₹301 to ₹699. Each room bill is
+  // three shares, so the Electricity screen displays realistic per-tenant bills.
+  const shareValues = [629,428,517,684,356,592,473,641,389,558,612,337,496,675,421,583,364,647,452,531,698,315,566,407,623,478,349,659,502,386,614,439,571];
+  const unpaidTenantIds = new Set();
+  // Exactly eight unpaid tenants, distributed across different rooms.
+  const unpaidIndexes = [2,7,14,23,35,48,72,94];
+  unpaidIndexes.forEach(function(i){ if(DB.tenants[i]) unpaidTenantIds.add(DB.tenants[i].id); });
+
+  const unpaidRoomNumbers = new Set(['101','102','103','104','105','106','201','202']);
+  DB.rooms.forEach(function(room, roomIndex){
+    const occupants = roomOccupants(room.id);
+    const share = shareValues[roomIndex % shareValues.length];
+    const bill = share * Math.max(1, occupants.length);
     DB.electricity.push({id:'electricity_'+room.roomNumber+'_2026_10', roomId:room.id, month:month, totalBill:bill});
-    const occ = roomOccupants(room.id);
-    if(i < 27){
-      DB.payments.push({id:'oct_rent_'+room.roomNumber, tenantId:occ[0] ? occ[0].id : null, roomId:room.id, type:'rent', month:month, amount:7500, date:'2026-10-05', mode:'UPI', note:'Room rent'});
-    } else if(i === 32){
-      DB.payments.push({id:'oct_rent_partial_'+room.roomNumber, tenantId:occ[0] ? occ[0].id : null, roomId:room.id, type:'rent', month:month, amount:3750, date:'2026-10-05', mode:'UPI', note:'Partial room rent'});
+
+    // Rent is recorded room-wise: 25 rooms paid in full, 8 rooms have rent due.
+    if(!unpaidRoomNumbers.has(String(room.roomNumber))){
+      DB.payments.push({id:'oct_rent_'+room.roomNumber, tenantId:occupants[0] ? occupants[0].id : null, roomId:room.id, type:'rent', month:month, amount:7500, date:'2026-10-05', mode:'UPI', note:'Room rent'});
     }
-    // Electricity collections total exactly ₹25,000; total bills are ₹26,400 (₹1,400 due).
-    const collected = i < 27 ? 900 : (i === 27 ? 700 : 0);
-    DB.elecCollectedOverrides[room.id+'|'+month] = collected;
+
+    // Electricity is tenant-share based. 91 tenants pay their complete share;
+    // the selected eight have no October electricity payment.
+    occupants.forEach(function(t, occupantIndex){
+      if(unpaidTenantIds.has(t.id)) return;
+      DB.payments.push({
+        id:'oct_elec_'+room.roomNumber+'_'+t.id,
+        tenantId:t.id, roomId:room.id, type:'electricity', month:month,
+        amount:share, date:'2026-10-'+String(5 + ((roomIndex + occupantIndex) % 20)).padStart(2,'0'),
+        mode:occupantIndex % 2 === 0 ? 'UPI' : 'Cash', note:'Electricity share'
+      });
+    });
   });
-  // Make the room status reflect payment of both room rent and electricity.
-  DB.requestedOctoberStateV1 = true;
+
+  // Mark this seed revision so it is not re-applied after every reload.
+  DB.requestedOctoberStateV2 = true;
 }
 
 function init(){
