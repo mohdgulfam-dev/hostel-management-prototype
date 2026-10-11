@@ -914,11 +914,8 @@ function calculateRoomRentDue(roomId, month){
 function calculateRoomRentStatus(roomId, month){
   const room = getRoom(roomId);
   if(!room) return 'unpaid';
-  const fin = calculateRoomFinancials(roomId, month);
-  return calculateTenantStatus(
-    r2(fin.rentCollected + fin.elecCollected),
-    r2(fin.totalRent + fin.elecBill)
-  );
+  // Rent screen status is based on room rent only; electricity is tracked separately.
+  return calculateTenantStatus(roomRentPaidFor(roomId, month), room.monthlyRent);
 }
 
 function calculateRoomFinancials(roomId, month){
@@ -1852,107 +1849,58 @@ function renderRent(){
 function renderElectricity(){
   const m = UI.month;
   const T = calculateDashboardTotals(m);
+  const allRooms = DB.rooms.slice().sort(function(a,b){ return Number(a.roomNumber)-Number(b.roomNumber); });
 
-  let rows = DB.tenants.slice().sort(function(a,b){
-    const ra = getRoom(a.roomId), rb = getRoom(b.roomId);
-    return (parseInt(ra?ra.roomNumber:0,10) - parseInt(rb?rb.roomNumber:0,10)) || a.name.localeCompare(b.name);
-  });
-
-  rows = rows.filter(function(t){
-    if(!UI.elecSearch) return true;
-    const q = UI.elecSearch.toLowerCase();
-    const room = getRoom(t.roomId);
-    return t.name.toLowerCase().indexOf(q) >= 0 || (room && room.roomNumber.indexOf(q) >= 0);
-  });
-
-  const allRows = DB.tenants;
-  const paidCount = allRows.filter(function(t){ return tenantElecStatus(t,m) === 'paid'; }).length;
-  const unpaidCount = allRows.filter(function(t){ return tenantElecStatus(t,m) === 'unpaid'; }).length;
-  const partialCount = allRows.filter(function(t){ return tenantElecStatus(t,m) === 'partial'; }).length;
-
-  if(UI.elecFilter !== 'all'){
-    rows = rows.filter(function(t){ return tenantElecStatus(t, m) === UI.elecFilter; });
+  function roomBill(roomId){ return elecBillFor(roomId, m); }
+  function roomPaid(roomId){
+    const key = roomId + '|' + m;
+    if(DB.elecCollectedOverrides && Object.prototype.hasOwnProperty.call(DB.elecCollectedOverrides, key)) return r2(DB.elecCollectedOverrides[key]);
+    return r2(DB.payments.filter(function(p){ return p.roomId===roomId && p.month===m && p.type==='electricity'; }).reduce(function(sum,p){ return sum + (Number(p.amount)||0); },0));
   }
+  function roomStatus(roomId){ return calculateTenantStatus(roomPaid(roomId), roomBill(roomId)); }
+
+  let rooms = allRooms.filter(function(room){
+    if(!UI.elecSearch) return true;
+    return room.roomNumber.indexOf(UI.elecSearch.toLowerCase()) >= 0;
+  });
+  const paidCount = allRooms.filter(function(room){ return roomStatus(room.id)==='paid'; }).length;
+  const unpaidCount = allRooms.filter(function(room){ return roomStatus(room.id)==='unpaid'; }).length;
+  const partialCount = allRooms.filter(function(room){ return roomStatus(room.id)==='partial'; }).length;
+  if(UI.elecFilter !== 'all') rooms = rooms.filter(function(room){ return roomStatus(room.id)===UI.elecFilter; });
+
+  const totalBill = r2(allRooms.reduce(function(sum,room){ return sum + roomBill(room.id); },0));
+  const totalCollected = r2(allRooms.reduce(function(sum,room){ return sum + roomPaid(room.id); },0));
+  const totalDue = Math.max(0, r2(totalBill-totalCollected));
 
   let h = '';
-  h += '<div class="page-head"><div>' +
-    '<h1 class="page-title">Electricity Management</h1>' +
-    '<p class="page-sub">Track room electricity bills and tenant payments</p>' +
-  '</div></div>';
-
+  h += '<div class="page-head"><div><h1 class="page-title">Electricity Management</h1><p class="page-sub">Track electricity bills by room</p></div></div>';
   h += monthSelector();
-
   h += '<div class="grid2">' +
-    '<div class="stat tint-amber" style="box-shadow:none">' +
-      '<div class="stat-icon bg-amber">' + icon('zap',17) + '</div>' +
-      '<div class="stat-label">Total Electricity Bill</div>' +
-      '<div class="stat-value" style="color:var(--amber)">' + money(T.elecBill) + '</div>' +
-      '<div class="stat-foot">' + monthLabel(m) + '</div>' +
-    '</div>' +
-    '<div class="stat tint-green" style="box-shadow:none">' +
-      '<div class="stat-icon bg-green">' + icon('wallet',17) + '</div>' +
-      '<div class="stat-label">Collected</div>' +
-      '<div class="stat-value" style="color:var(--green)">' + money(T.elecCollected) + '</div>' +
-      '<div class="stat-foot">Paid by tenants</div>' +
-    '</div>' +
+    '<div class="stat tint-amber" style="box-shadow:none"><div class="stat-icon bg-amber">' + icon('zap',17) + '</div><div class="stat-label">Total Electricity Bill</div><div class="stat-value" style="color:var(--amber)">' + money(totalBill) + '</div><div class="stat-foot">' + monthLabel(m) + '</div></div>' +
+    '<div class="stat tint-green" style="box-shadow:none"><div class="stat-icon bg-green">' + icon('wallet',17) + '</div><div class="stat-label">Collected</div><div class="stat-value" style="color:var(--green)">' + money(totalCollected) + '</div><div class="stat-foot">Paid by rooms</div></div>' +
   '</div>';
-
-  h += '<div class="stat tint-red" style="box-shadow:none;margin-bottom:14px">' +
-      '<div class="stat-icon bg-red">' + icon('clock',17) + '</div>' +
-      '<div class="stat-label">Outstanding</div>' +
-      '<div class="stat-value" style="color:var(--red)">' + money(T.elecDue) + '</div>' +
-      '<div class="stat-foot">' + T.elecDueTenants + ' tenants pending</div>' +
-    '</div>';
-
+  h += '<div class="stat tint-red" style="box-shadow:none;margin-bottom:14px"><div class="stat-icon bg-red">' + icon('clock',17) + '</div><div class="stat-label">Outstanding</div><div class="stat-value" style="color:var(--red)">' + money(totalDue) + '</div><div class="stat-foot">' + unpaidCount + ' rooms unpaid</div></div>';
   h += '<div class="chip-row">' +
-    '<button class="chip' + (UI.elecFilter==='all'?' active':'') + '" data-action="filter" data-group="elecFilter" data-value="all">All (' + allRows.length + ')</button>' +
+    '<button class="chip' + (UI.elecFilter==='all'?' active':'') + '" data-action="filter" data-group="elecFilter" data-value="all">All (' + allRooms.length + ')</button>' +
     '<button class="chip' + (UI.elecFilter==='paid'?' active':'') + '" data-action="filter" data-group="elecFilter" data-value="paid">Paid (' + paidCount + ')</button>' +
     '<button class="chip' + (UI.elecFilter==='unpaid'?' active':'') + '" data-action="filter" data-group="elecFilter" data-value="unpaid">Unpaid (' + unpaidCount + ')</button>' +
     '<button class="chip' + (UI.elecFilter==='partial'?' active':'') + '" data-action="filter" data-group="elecFilter" data-value="partial">Partial (' + partialCount + ')</button>' +
   '</div>';
-
-  h += '<div class="search">' + icon('search',18) +
-    '<input type="search" placeholder="Search tenant or room number..." value="' + esc(UI.elecSearch) + '" data-search="elecSearch" aria-label="Search electricity records">' +
-  '</div>';
-
-  if(!rows.length){
-    h += '<div class="card"><div class="empty"><div class="ic-wrap">' + icon('zap',26) + '</div>' +
-      '<h4>No electricity records</h4><p>Record a room electricity bill to get started.</p></div></div>';
+  h += '<div class="search">' + icon('search',18) + '<input type="search" placeholder="Search room number..." value="' + esc(UI.elecSearch) + '" data-search="elecSearch" aria-label="Search room number"></div>';
+  if(!rooms.length){
+    h += '<div class="card"><div class="empty"><div class="ic-wrap">' + icon('zap',26) + '</div><h4>No electricity records</h4><p>Try a different room number or payment filter.</p></div></div>';
     return h;
   }
-
   h += '<div class="card flush"><div class="list">';
-  rows.forEach(function(t){
-    const room = getRoom(t.roomId);
-    const share = elecShareFor(t, m);
-    const paid = elecPaidFor(t.id, m);
-    const due = calculateElectricityDue(t, m);
-    const st = tenantElecStatus(t, m);
-    h += '<button class="row" data-action="go" data-screen="electricity-details" data-id="' + t.id + '" style="align-items:flex-start">' +
-      avatar(t.name,'sm') +
-      '<div class="row-main">' +
-        '<div class="row-title truncate">' + esc(t.name) + '</div>' +
-        '<div class="row-sub">' + esc(t.phone) + '</div>' +
-      '</div>' +
-      '<div style="text-align:center;min-width:44px">' +
-        '<div style="font-size:11px;color:var(--muted);font-weight:600">Room</div>' +
-        '<div style="font-weight:700;font-size:13.5px">' + esc(room ? room.roomNumber : '-') + '</div>' +
-      '</div>' +
-      '<div style="text-align:right;min-width:62px">' +
-        '<div style="font-weight:700;font-size:13.5px;color:var(--amber)">' + money(share) + '</div>' +
-        '<div style="font-size:11px;color:var(--muted)">share</div>' +
-      '</div>' +
-      '<div style="text-align:right;min-width:56px">' +
-        '<div style="font-weight:700;font-size:13.5px;color:' + (paid>0?'var(--green)':'var(--muted)') + '">' + (paid>0?money(paid):'-') + '</div>' +
-        '<div style="font-size:11px;color:var(--muted)">paid</div>' +
-      '</div>' +
-      '<div style="text-align:right;min-width:56px">' +
-        '<div style="font-weight:700;font-size:13.5px;color:' + (due>0?'var(--red)':'var(--green)') + '">' + money(due) + '</div>' +
-        '<div style="font-size:11px;color:var(--muted)">due</div>' +
-      '</div>' +
-      '<div class="row-right" style="min-width:68px">' + statusPill(st) + '</div>' +
-      '<span style="color:#B7C2D8">' + icon('chevRight',16) + '</span>' +
-    '</button>';
+  rooms.forEach(function(room){
+    const bill = roomBill(room.id), paid = roomPaid(room.id), due = Math.max(0,r2(bill-paid)), status = roomStatus(room.id);
+    h += '<button class="row" data-action="go" data-screen="room-details" data-id="' + room.id + '" style="align-items:center">' +
+      '<div class="stat-icon bg-amber" style="width:44px;height:44px;margin:0">' + icon('zap',20) + '</div>' +
+      '<div class="row-main"><div class="row-title">Room ' + esc(room.roomNumber) + '</div><div class="row-sub">' + roomOccupants(room.id).length + ' / ' + room.capacity + ' tenants</div></div>' +
+      '<div style="text-align:center;min-width:62px"><div style="font-size:11px;color:var(--muted);font-weight:600">Bill</div><div style="font-weight:700;font-size:13.5px;color:var(--amber)">' + money(bill) + '</div></div>' +
+      '<div style="text-align:center;min-width:62px"><div style="font-size:11px;color:var(--muted);font-weight:600">Paid</div><div style="font-weight:700;font-size:13.5px;color:var(--green)">' + money(paid) + '</div></div>' +
+      '<div style="text-align:center;min-width:62px"><div style="font-size:11px;color:var(--muted);font-weight:600">Due</div><div style="font-weight:700;font-size:13.5px;color:' + (due>0?'var(--red)':'var(--green)') + '">' + money(due) + '</div></div>' +
+      '<div class="row-right" style="min-width:68px">' + statusPill(status) + '</div><span style="color:#B7C2D8">' + icon('chevRight',16) + '</span></button>';
   });
   h += '</div></div>';
   return h;
@@ -3209,7 +3157,7 @@ function ensureAllHostelRooms(){
 
 function applyRequestedOctoberDemoState(){
   // V2: deterministic demo records with varied electricity shares and only
-  // eight unpaid electricity tenants for October 2026. Re-applies once to
+  // legacy eight unpaid electricity tenants for October 2026. Re-applies once to
   // existing localStorage data without changing other months or profile data.
   if(DB.requestedOctoberStateV2) return;
   const month = '2026-10';
@@ -3271,6 +3219,47 @@ function applyRequestedOctoberDemoState(){
   DB.requestedOctoberStateV2 = true;
 }
 
+function applyRequestedOctoberDemoStateV3(){
+  // Room-level October demo data: 20 paid rooms and 13 unpaid rooms for both rent and electricity.
+  if(DB.requestedOctoberStateV3) return;
+  const month = '2026-10';
+  DB.elecCollectedOverrides = DB.elecCollectedOverrides || {};
+  DB.rentCollectedOverrides = DB.rentCollectedOverrides || {};
+
+  // Ensure the full 33-room / 99-tenant prototype dataset exists.
+  DB.rooms.forEach(function(room){
+    let occupants = roomOccupants(room.id);
+    while(occupants.length < 3){
+      const idx = DB.tenants.length + 1;
+      const tenant = {id:'tenant_auto_'+idx, name:'Tenant '+String(idx).padStart(3,'0'), phone:'+91 90000 '+String(10000 + idx).slice(-5), roomId:room.id, monthlyRent:2500, joiningDate:'2026-10-01'};
+      DB.tenants.push(tenant);
+      occupants.push(tenant);
+    }
+    room.capacity = 3;
+  });
+
+  DB.payments = DB.payments.filter(function(p){ return p.month !== month; });
+  DB.electricity = DB.electricity.filter(function(e){ return e.month !== month; });
+  Object.keys(DB.elecCollectedOverrides).forEach(function(k){ if(k.endsWith('|'+month)) delete DB.elecCollectedOverrides[k]; });
+  Object.keys(DB.rentCollectedOverrides).forEach(function(k){ if(k.endsWith('|'+month)) delete DB.rentCollectedOverrides[k]; });
+
+  // Fixed but varied room bills, each between ₹300 and ₹700.
+  const bills = [629,428,517,684,356,592,473,641,389,558,612,337,496,675,421,583,364,647,452,531,698,315,566,407,623,478,349,659,502,386,614,439,571];
+  // The first 20 rooms are paid; the remaining 13 are unpaid in both sections.
+  DB.rooms.forEach(function(room, index){
+    const occupants = roomOccupants(room.id);
+    const bill = bills[index % bills.length];
+    DB.electricity.push({id:'electricity_'+room.roomNumber+'_2026_10', roomId:room.id, month:month, totalBill:bill});
+
+    if(index < 20){
+      DB.payments.push({id:'oct_rent_'+room.roomNumber, tenantId:occupants[0] ? occupants[0].id : null, roomId:room.id, type:'rent', month:month, amount:7500, date:'2026-10-05', mode:'UPI', note:'Room rent'});
+      DB.payments.push({id:'oct_elec_'+room.roomNumber, tenantId:occupants[0] ? occupants[0].id : null, roomId:room.id, type:'electricity', month:month, amount:bill, date:'2026-10-06', mode:'UPI', note:'Room electricity bill'});
+    }
+  });
+
+  DB.requestedOctoberStateV3 = true;
+}
+
 function init(){
   loadAuth();
 
@@ -3295,6 +3284,7 @@ function init(){
   ensureAllHostelRooms();
   normalizeRoomRentModel();
   applyRequestedOctoberDemoState();
+  applyRequestedOctoberDemoStateV3();
   saveData();
   render();
 }
