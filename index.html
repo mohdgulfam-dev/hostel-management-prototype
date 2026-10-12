@@ -2246,12 +2246,11 @@ function renderMore(){
   '</div>';
 
   const mgmt = [
-    ['rent','Rent','Manage rent, view dues and record payments','wallet','bg-blue'],
-    ['electricity','Electricity','Manage electricity, view dues and record payments','zap','bg-amber'],
     ['rooms','Rooms','Manage hostel rooms and occupancy','bed','bg-purple'],
-    ['financial','Financial Records','View all rent and electricity payments','chart','bg-green']
+    ['financial','Financial Records','View all rent and electricity payments','chart','bg-green'],
+    ['admin-profile','Admin Profile','View and update your profile','user','bg-green'],
+    ['hostel-info','Hostel Information','View and edit hostel details','building','bg-blue']
   ];
-  h += '<div class="section-title" style="margin:6px 0 10px">Management</div>';
   h += '<div class="card flush"><div class="list">';
   mgmt.forEach(function(m){
     h += '<button class="row" data-action="go" data-screen="' + m[0] + '">' +
@@ -2264,8 +2263,6 @@ function renderMore(){
   h += '</div></div>';
 
   const acct = [
-    ['admin-profile','Admin Profile','View and update your profile','user','bg-green'],
-    ['hostel-info','Hostel Information','View and edit hostel details','building','bg-blue'],
     ['logout','Logout','Sign out from your account','logout','bg-red']
   ];
   h += '<div class="section-title" style="margin:18px 0 10px">Account</div>';
